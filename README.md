@@ -4,23 +4,6 @@
 
 A front-end and back-end separated management system based on Spring Boot 2.7.18, Spring Boot JPA, JWT, Spring Security, Redis, and Vue.
 
-A MyBatis-Plus version has also been released:
-- [GitHub](https://github.com/elunez/eladmin-mp)
-- [Gitee](https://gitee.com/elunez/eladmin-mp)
-
-**Documentation:** [https://eladmin.vip](https://eladmin.vip)
-
-**Demo:** [https://eladmin.vip/demo](https://eladmin.vip/demo)
-
-**Demo Account:** `admin / 123456`
-
-## Source Code
-
-|        | Backend Source | Frontend Source |
-|--------|---------------|----------------|
-| GitHub | https://github.com/elunez/eladmin | https://github.com/elunez/eladmin-web |
-| Gitee  | https://gitee.com/elunez/eladmin  | https://gitee.com/elunez/eladmin-web  |
-
 ## Main Features
 
 - Uses the latest tech stack with rich community resources.
@@ -48,7 +31,6 @@ A MyBatis-Plus version has also been released:
 - Code Generation: High flexibility code generation for front-end and back-end, reducing repetitive work.
 - Email Tool: Send HTML format emails with rich text.
 - AWS Cloud Storage: Synchronize AWS cloud storage data to the system, no need to log in to AWS cloud to operate cloud data.
-- Alipay Payment: Integrate Alipay payment and provide a test account for self-testing.
 - Server Monitoring: Monitor server load status.
 - Operations Management: One-click deployment of your application.
 
@@ -93,20 +75,57 @@ The project uses a modular development approach, with the following structure:
     - alipay Alipay payment tool
     - local-storage Local storage tool
 - eladmin-generator System Code Generation Module
-```
 
-## Special Thanks
+## Running the Project
 
-- Thanks to [PanJiaChen](https://github.com/PanJiaChen/vue-element-admin) for providing the front-end template.
-- Thanks to [Moxun](https://github.com/moxun1639) for providing the front-end Curd common components.
-- Thanks to [zhy6599](https://gitee.com/zhy6599) for providing the back-end operations management related functions.
-- Thanks to [j.yao.SUSE](https://github.com/everhopingandwaiting) for providing the anonymous API and Redis rate limiting functions.
-- Thanks to [d15801543974](https://github.com/d15801543974) for providing the annotation-based common query method.
+### Development Environment
 
-## Project Donation
+1. **Prerequisites**:
+   - Java 17
+   - Maven 3.6+
+   - MySQL 5.7+
+   - Redis
 
-The project's development relies on your support, please buy the author a cup of coffee ☕ [Donate](https://eladmin.vip/pages/030101/)
+2. **Configure Development Properties**:
+   - Update database connection in `eladmin-system/src/main/resources/config/application-dev.yml`
+   - Configure Redis connection
+   - Set email properties if using the email verification feature
 
-## Feedback and Discussion
+3. **Run the Application**:
+   ```bash
+   # Using Maven Wrapper
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+   
+   # Or using Maven directly
+   mvn spring-boot:run -Dspring-boot.run.profiles=dev
+   ```
 
-- QQ discussion group: 891137268, 947578238, 659622532
+4. **Access the API**:
+   - The API will be available at: `http://localhost:8000`
+   - Swagger API documentation: `http://localhost:8000/swagger-ui/index.html`
+
+### Production Environment
+
+1. **Build the Project**:
+   ```bash
+   # Using Maven Wrapper
+   ./mvnw clean package -Pproduct -Dmaven.test.skip=true
+   
+   # Or using Maven directly
+   mvn clean package -Pproduct -Dmaven.test.skip=true
+   ```
+
+2. **Configure Production Properties**:
+   - Update database connection in `eladmin-system/src/main/resources/config/application-prod.yml`
+   - Configure Redis connection with secure password
+   - Set appropriate logging levels
+   - Enable CORS protection as needed
+
+3. **Deploy the Application**:
+   ```bash
+   java -jar eladmin-system/target/eladmin-system-2.7.jar --spring.profiles.active=prod
+   ```
+
+4. **Server Requirements**:
+   - Minimum: 1 Core CPU, 2GB RAM
+   - Recommended: 2+ Core CPU, 4GB+ RAM

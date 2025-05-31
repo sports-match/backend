@@ -98,6 +98,10 @@ public class User extends BaseEntity implements Serializable {
     @ApiModelProperty(value = "最后修改密码的时间", hidden = true)
     private Date pwdResetTime;
 
+    @Column(name = "email_verified")
+    @ApiModelProperty(value = "邮箱是否已验证")
+    private Boolean emailVerified = false;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

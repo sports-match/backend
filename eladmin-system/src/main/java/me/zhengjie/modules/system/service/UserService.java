@@ -95,6 +95,19 @@ public interface UserService {
     void updateEmail(String username, String email);
 
     /**
+     * 根据邮箱查询用户
+     * @param email 邮箱
+     * @return 用户对象
+     */
+    User findByEmail(String email);
+
+    /**
+     * 更新用户邮箱验证状态
+     * @param user 用户对象
+     */
+    void updateEmailVerificationStatus(User user);
+
+    /**
      * 查询全部
      * @param criteria 条件
      * @param pageable 分页参数

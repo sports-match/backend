@@ -246,6 +246,25 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateEmailVerificationStatus(User user) {
+        User existingUser = userRepository.findById(user.getId()).orElseGet(User::new);
+        ValidationUtil.isNull(existingUser.getId(), "User", "id", user.getId());
+        
+        existingUser.setEmailVerified(user.getEmailVerified());
+        existingUser.setEnabled(user.getEnabled());
+        userRepository.save(existingUser);
+        
+        // Clear cache
+        delCaches(existingUser.getId(), existingUser.getUsername());
+    }
+
+    @Override
     public void download(List<UserDto> queryAll, HttpServletResponse response) throws IOException {
         List<Map<String, Object>> list = new ArrayList<>();
         for (UserDto userDTO : queryAll) {
