@@ -16,6 +16,7 @@
 package com.srr.rest;
 
 import com.srr.domain.Player;
+import com.srr.dto.PlayerAssessmentStatusDto;
 import com.srr.dto.PlayerDto;
 import com.srr.dto.PlayerQueryCriteria;
 import com.srr.service.PlayerService;
@@ -65,5 +66,12 @@ public class PlayerController {
     public ResponseEntity<Object> updatePlayer(@Validated @RequestBody Player resources){
         ExecutionResult result = playerService.update(resources);
         return new ResponseEntity<>(result.toMap(), HttpStatus.OK);
+    }
+    
+    @GetMapping("/assessment-status")
+    @ApiOperation("Check if player has completed self-assessment")
+    public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus() {
+        PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus();
+        return new ResponseEntity<>(status, HttpStatus.OK);
     }
 }

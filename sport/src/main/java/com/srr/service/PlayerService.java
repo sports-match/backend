@@ -16,6 +16,7 @@
 package com.srr.service;
 
 import com.srr.domain.Player;
+import com.srr.dto.PlayerAssessmentStatusDto;
 import com.srr.dto.PlayerDto;
 import com.srr.dto.PlayerQueryCriteria;
 import me.zhengjie.utils.ExecutionResult;
@@ -91,4 +92,11 @@ public interface PlayerService {
      * @return Player entity if found, null otherwise
      */
     Player findByUserId(Long userId);
+
+    /**
+     * Check if the current user has completed their self-assessment
+     * Returns assessment status which includes whether the assessment is completed and a message
+     * @return PlayerAssessmentStatusDto containing the assessment status
+     */
+    PlayerAssessmentStatusDto checkAssessmentStatus();
 }

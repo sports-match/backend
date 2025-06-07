@@ -54,11 +54,6 @@ public class User extends BaseEntity implements Serializable {
             inverseJoinColumns = {@JoinColumn(name = "role_id",referencedColumnName = "role_id")})
     private Set<Role> roles;
 
-    @OneToOne
-    @JoinColumn(name = "dept_id")
-    @ApiModelProperty(value = "用户部门")
-    private Dept dept;
-
     @NotBlank
     @Column(unique = true)
     @ApiModelProperty(value = "用户名称")

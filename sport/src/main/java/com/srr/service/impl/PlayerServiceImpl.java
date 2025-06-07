@@ -16,6 +16,7 @@
 package com.srr.service.impl;
 
 import com.srr.domain.Player;
+import com.srr.dto.PlayerAssessmentStatusDto;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import com.srr.dto.PlayerDto;
 import com.srr.dto.PlayerQueryCriteria;
 import com.srr.dto.mapstruct.PlayerMapper;
 import me.zhengjie.utils.ExecutionResult;
+import me.zhengjie.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -118,5 +120,28 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public Player findByUserId(Long userId) {
         return playerRepository.findByUserId(userId);
+    }
+
+    @Override
+    public PlayerAssessmentStatusDto checkAssessmentStatus() {
+        // Get current user ID
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        
+        // Find the player associated with the current user
+        Player player = findByUserId(currentUserId);
+        
+        if (player == null) {
+            return new PlayerAssessmentStatusDto(false, "Player profile not found. Please create your profile first.");
+        }
+        
+        // Check if the player has completed the self-assessment (rateScore is not null and not 0)
+        Double rateScore = player.getRateScore();
+        boolean isAssessmentCompleted = rateScore != null && rateScore > 0;
+        
+        String message = isAssessmentCompleted 
+            ? "Self-assessment completed." 
+            : "Please complete your self-assessment before joining any events.";
+        
+        return new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
     }
 }

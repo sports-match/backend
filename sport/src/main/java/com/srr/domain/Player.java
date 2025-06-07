@@ -30,8 +30,7 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 
 /**
-* @website https://eladmin.vip
-* @description /
+* @description
 * @author Chanheng
 * @date 2025-05-18
 **/

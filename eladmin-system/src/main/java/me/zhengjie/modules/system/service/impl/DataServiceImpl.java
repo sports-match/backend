@@ -53,28 +53,12 @@ public class DataServiceImpl implements DataService {
         String key = CacheKey.DATA_USER + user.getId();
         List<Long> ids = redisUtils.getList(key, Long.class);
         if (CollUtil.isEmpty(ids)) {
-            // 用于存储部门id
-            Set<Long> deptIds = new HashSet<>();
-            // 查询用户角色
-            List<RoleSmallDto> roleSet = roleService.findByUsersId(user.getId());
-            // 获取对应的部门ID
-            for (RoleSmallDto role : roleSet) {
-                DataScopeEnum dataScopeEnum = DataScopeEnum.find(role.getDataScope());
-                switch (Objects.requireNonNull(dataScopeEnum)) {
-                    case THIS_LEVEL:
-                        deptIds.add(user.getDept().getId());
-                        break;
-                    case CUSTOMIZE:
-                        deptIds.addAll(getCustomize(deptIds, role));
-                        break;
-                    default:
-                        return new ArrayList<>();
-                }
-            }
-            ids = new ArrayList<>(deptIds);
-            redisUtils.set(key, ids, 1, TimeUnit.DAYS);
+            // Since departments have been removed, we return an empty list
+            // This simplifies data scope - essentially giving full access since
+            // department-based restrictions are no longer applicable
+            return new ArrayList<>();
         }
-        return new ArrayList<>(ids);
+        return ids;
     }
 
     /**

@@ -122,10 +122,6 @@ public class UserServiceImpl implements UserService {
             redisUtils.del(CacheKey.ROLE_AUTH + resources.getId());
             redisUtils.del(CacheKey.ROLE_USER + resources.getId());
         }
-        // Modifying the department will affect data permissions
-        if (!Objects.equals(resources.getDept(),user.getDept())) {
-            redisUtils.del(CacheKey.DATA_USER + resources.getId());
-        }
         // If the user is disabled, clear the user's login information
         if(!resources.getEnabled()){
             onlineUserService.kickOutForUsername(resources.getUsername());
@@ -134,7 +130,6 @@ public class UserServiceImpl implements UserService {
         user.setEmail(resources.getEmail());
         user.setEnabled(resources.getEnabled());
         user.setRoles(resources.getRoles());
-        user.setDept(resources.getDept());
         user.setPhone(resources.getPhone());
         user.setNickName(resources.getNickName());
         user.setGender(resources.getGender());
@@ -284,7 +279,6 @@ public class UserServiceImpl implements UserService {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("Username", userDTO.getUsername());
             map.put("Nickname", userDTO.getNickName());
-            map.put("Department", userDTO.getDept().getName());
             map.put("Phone", userDTO.getPhone());
             map.put("Email", userDTO.getEmail());
             map.put("Status", userDTO.getEnabled() ? "Enabled" : "Disabled");

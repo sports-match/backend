@@ -18,6 +18,7 @@ package me.zhengjie.modules.security.rest;
 import cn.hutool.core.util.IdUtil;
 import com.srr.domain.EventOrganizer;
 import com.srr.domain.Player;
+import com.srr.dto.PlayerAssessmentStatusDto;
 import com.srr.repository.EventOrganizerRepository;
 import com.srr.service.PlayerService;
 import com.wf.captcha.base.Captcha;
@@ -124,10 +125,28 @@ public class AuthController {
         // 生成令牌
         String token = tokenProvider.createToken(jwtUser);
         // 返回 token 与 用户信息
-        Map<String, Object> authInfo = new HashMap<>(2) {{
+        Map<String, Object> authInfo = new HashMap<>(3) {{
             put("token", properties.getTokenStartWith() + token);
             put("user", jwtUser);
         }};
+        
+        // Check if the user is a player and include assessment status in the response
+        if (jwtUser.getUser().getUserType() == UserType.PLAYER) {
+            // Get player assessment status
+            Player player = playerService.findByUserId(jwtUser.getUser().getId());
+            if (player != null) {
+                Double rateScore = player.getRateScore();
+                boolean isAssessmentCompleted = rateScore != null && rateScore > 0;
+                
+                String message = isAssessmentCompleted 
+                    ? "Self-assessment completed." 
+                    : "Please complete your self-assessment before joining any events.";
+                    
+                PlayerAssessmentStatusDto assessmentStatus = new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
+                authInfo.put("assessmentStatus", assessmentStatus);
+            }
+        }
+        
         if (loginProperties.isSingleLogin()) {
             // 踢掉之前已经登录的token
             onlineUserService.kickOutForUsername(authUser.getUsername());
