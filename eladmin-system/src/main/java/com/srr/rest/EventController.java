@@ -90,7 +90,7 @@ public class EventController {
     @PostMapping("/{id}/join")
     @Log("Join event")
     @ApiOperation("Join event")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @PreAuthorize("hasAuthority('Player')")
     public ResponseEntity<Object> joinEvent(@PathVariable Long id, @RequestBody JoinEventDto joinEventDto) {
         // Ensure ID in path matches ID in DTO
         joinEventDto.setEventId(id);

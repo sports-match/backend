@@ -37,7 +37,7 @@ public class QuestionController {
     
     @ApiOperation("Get all questions for self-assessment")
     @GetMapping("/self-assessment")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAuthority('Player')")
     public ResponseEntity<List<QuestionDto>> getAllForSelfAssessment() {
         return new ResponseEntity<>(questionService.getAllForSelfAssessment(), HttpStatus.OK);
     }

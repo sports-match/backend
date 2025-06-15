@@ -22,7 +22,7 @@ public class AdminOrganizerController {
 
     @PutMapping("/{organizerId}/status")
     @ApiOperation("Update Event Organizer Verification Status")
-    @PreAuthorize("hasAuthority('ORGANIZER')") // Refactored from @el.check('organizer:verify')
+    @PreAuthorize("hasAuthority('Admin')") // Refactored from @el.check('organizer:verify')
     public ResponseEntity<Object> updateOrganizerVerificationStatus(
             @PathVariable Long organizerId,
             @Validated @RequestBody OrganizerVerificationDto verificationDto) {

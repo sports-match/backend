@@ -4,6 +4,7 @@ import com.srr.domain.*;
 import com.srr.dto.EventDto;
 import com.srr.dto.EventQueryCriteria;
 import com.srr.dto.JoinEventDto;
+import com.srr.dto.enums.EventTimeFilter;
 import com.srr.dto.mapstruct.EventMapper;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.Predicate;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -27,7 +29,6 @@ import java.util.*;
 
 /**
  * @author Chanheng
- * @website https://eladmin.vip
  * @description 服务实现
  * @date 2025-05-18
  **/
@@ -68,13 +69,35 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public PageResult<EventDto> queryAll(EventQueryCriteria criteria, Pageable pageable) {
-        Page<Event> page = eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
+        Page<Event> page = eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
+            Predicate predicate = QueryHelp.getPredicate(root, criteria, criteriaBuilder);
+            if (criteria.getEventTimeFilter() != null) {
+                Timestamp now = new Timestamp(System.currentTimeMillis());
+                if (criteria.getEventTimeFilter() == EventTimeFilter.UPCOMING) {
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("eventTime"), now));
+                } else if (criteria.getEventTimeFilter() == EventTimeFilter.PAST) {
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThan(root.get("eventTime"), now));
+                }
+            }
+            return predicate;
+        }, pageable);
         return PageUtil.toPage(page.map(eventMapper::toDto));
     }
 
     @Override
     public List<EventDto> queryAll(EventQueryCriteria criteria) {
-        return eventMapper.toDto(eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder)));
+        return eventMapper.toDto(eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
+            Predicate predicate = QueryHelp.getPredicate(root, criteria, criteriaBuilder);
+            if (criteria.getEventTimeFilter() != null) {
+                Timestamp now = new Timestamp(System.currentTimeMillis());
+                if (criteria.getEventTimeFilter() == EventTimeFilter.UPCOMING) {
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("eventTime"), now));
+                } else if (criteria.getEventTimeFilter() == EventTimeFilter.PAST) {
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThan(root.get("eventTime"), now));
+                }
+            }
+            return predicate;
+        }));
     }
 
     @Override
@@ -92,17 +115,20 @@ public class EventServiceImpl implements EventService {
 
         List<EventOrganizer> organizerList = eventOrganizerRepository.findByUserId(currentUserId);
         if (!organizerList.isEmpty()) {
-            EventOrganizer organizer = organizerList.get(0); 
+            EventOrganizer organizer = organizerList.get(0);
             if (organizer.getVerificationStatus() != VerificationStatus.VERIFIED) {
                 throw new BadRequestException("Organizer account is not verified. Event creation is not allowed.");
             }
         }
-        
-        resources.setStatus(EventStatus.DRAFT);
-        if (resources.getCreateBy() == null) { 
+
+        // Set the creator of the event using the Long ID directly
+        if (resources.getCreateBy() == null) { // Event.java has 'createBy' as Long
              resources.setCreateBy(currentUserId);
         }
+        // If organizerList is empty, it means the user is not an organizer (e.g., an admin),
+        // so the check is bypassed. Permission to create is handled by @PreAuthorize.
 
+        resources.setStatus(EventStatus.PUBLISHED);
         Set<Tag> processedTags = processIncomingTags(resources.getTags());
         resources.setTags(processedTags);
 
@@ -113,21 +139,15 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EventDto update(Event resources) {
-        Event eventToUpdate = eventRepository.findById(resources.getId())
-                .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(resources.getId())));
-
-        Timestamp originalCreateTime = eventToUpdate.getCreateTime();
-        Long originalCreateByAudit = eventToUpdate.getCreateBy();
-
-        eventToUpdate.copy(resources);
-
-        eventToUpdate.setCreateTime(originalCreateTime);
-        eventToUpdate.setCreateBy(originalCreateByAudit); 
-
-        Set<Tag> processedTags = processIncomingTags(eventToUpdate.getTags());
-        eventToUpdate.setTags(processedTags); 
-
-        final var result = eventRepository.save(eventToUpdate);
+        Event event = eventRepository.findById(resources.getId()).orElseGet(Event::new);
+        ValidationUtil.isNull(event.getId(), "Event", "id", resources.getId());
+        // Add status validation: only allow update if not PUBLISHED, CHECK_IN, IN_PROGRESS, CLOSED, or DELETED
+        if (!(event.getStatus() == EventStatus.PUBLISHED ||
+            event.getStatus() == EventStatus.CHECK_IN )) {
+            throw new BadRequestException("Cannot update event with status: " + event.getStatus());
+        }
+        event.copy(resources);
+        final var result = eventRepository.save(event);
         return eventMapper.toDto(result);
     }
 
@@ -161,10 +181,10 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(joinEventDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
         
-        if (event.getStatus() != EventStatus.OPEN) {
+        if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new BadRequestException("Event is not open for joining");
         }
-        
+
         boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
         if (event.getMaxParticipants() != null && 
             (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
@@ -174,23 +194,23 @@ public class EventServiceImpl implements EventService {
             }
             isWaitList = true;
         }
-        
+
         if (joinEventDto.getTeamId() != null) {
             Team team = teamRepository.findById(joinEventDto.getTeamId())
                     .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(joinEventDto.getTeamId())));
-            
+
             if (!team.getEvent().getId().equals(event.getId())) {
                 throw new BadRequestException("Team does not belong to this event");
             }
-            
+
             if (teamPlayerRepository.existsByTeamIdAndPlayerId(team.getId(), joinEventDto.getPlayerId())) {
                 throw new BadRequestException("Player is already in this team");
             }
-            
+
             if (team.getTeamPlayers().size() >= team.getTeamSize()) {
                 throw new BadRequestException("Team is already full");
             }
-            
+
             TeamPlayer teamPlayer = new TeamPlayer();
             teamPlayer.setTeam(team);
             Player player = new Player();
@@ -198,7 +218,7 @@ public class EventServiceImpl implements EventService {
             teamPlayer.setPlayer(player);
             teamPlayer.setCheckedIn(false);
             teamPlayerRepository.save(teamPlayer);
-            
+
             teamRepository.save(team);
         } else {
             Team team = new Team();
@@ -212,11 +232,11 @@ public class EventServiceImpl implements EventService {
                 team.setTeamSize(2);
             } else {
                 team.setName("New Team");
-                team.setTeamSize(4); 
+                team.setTeamSize(4);
             }
             
             Team savedTeam = teamRepository.save(team);
-            
+
             TeamPlayer teamPlayer = new TeamPlayer();
             teamPlayer.setTeam(savedTeam);
             Player player = new Player();
