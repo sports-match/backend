@@ -26,7 +26,7 @@ import org.mapstruct.ReportingPolicy;
 * @author Chanheng
 * @date 2025-05-18
 **/
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring", uses = {TagMapper.class}, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface EventMapper extends BaseMapper<EventDto, Event> {
 
 }

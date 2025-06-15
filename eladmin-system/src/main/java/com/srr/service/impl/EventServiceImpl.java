@@ -45,6 +45,27 @@ public class EventServiceImpl implements EventService {
     private final WaitListRepository waitListRepository;
     private final PlayerSportRatingRepository playerSportRatingRepository;
     private final EventOrganizerRepository eventOrganizerRepository;
+    private final TagRepository tagRepository;
+
+    private Set<Tag> processIncomingTags(Set<Tag> tagsFromResource) {
+        if (tagsFromResource == null || tagsFromResource.isEmpty()) {
+            return new HashSet<>();
+        }
+        Set<Tag> managedTags = new HashSet<>();
+        for (Tag inputTag : tagsFromResource) {
+            if (inputTag.getName() != null && !inputTag.getName().trim().isEmpty()) {
+                String tagName = inputTag.getName().trim();
+                Tag persistentTag = tagRepository.findByName(tagName)
+                    .orElseGet(() -> {
+                        Tag newTag = new Tag();
+                        newTag.setName(tagName);
+                        return newTag;
+                    });
+                managedTags.add(persistentTag);
+            }
+        }
+        return managedTags;
+    }
 
     @Override
     public PageResult<EventDto> queryAll(EventQueryCriteria criteria, Pageable pageable) {
@@ -92,10 +113,9 @@ public class EventServiceImpl implements EventService {
     public EventDto create(Event resources) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
-        // Check if the current user is an organizer and if they are verified
         List<EventOrganizer> organizerList = eventOrganizerRepository.findByUserId(currentUserId);
         if (!organizerList.isEmpty()) {
-            EventOrganizer organizer = organizerList.get(0); // Assuming one user has one organizer profile
+            EventOrganizer organizer = organizerList.get(0);
             if (organizer.getVerificationStatus() != VerificationStatus.VERIFIED) {
                 throw new BadRequestException("Organizer account is not verified. Event creation is not allowed.");
             }
@@ -109,6 +129,9 @@ public class EventServiceImpl implements EventService {
         // so the check is bypassed. Permission to create is handled by @PreAuthorize.
 
         resources.setStatus(EventStatus.PUBLISHED);
+        Set<Tag> processedTags = processIncomingTags(resources.getTags());
+        resources.setTags(processedTags);
+
         final var result = eventRepository.save(resources);
         return eventMapper.toDto(result);
     }
@@ -134,7 +157,6 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(id)));
 
-        // Only update the status field
         event.setStatus(status);
         if (status == EventStatus.CHECK_IN) {
             event.setCheckInAt(Timestamp.from(Instant.now()));
@@ -147,9 +169,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EventDto joinEvent(JoinEventDto joinEventDto) {
-        // Self-assessment enforcement: require PlayerSportRating for badminton/doubles
         Long playerId = joinEventDto.getPlayerId();
-        // For phase 1, sport is always "Badminton", format is always "DOUBLES"
         if (playerId == null) {
             throw new BadRequestException("Player ID is required to join event");
         }
@@ -158,16 +178,13 @@ public class EventServiceImpl implements EventService {
             throw new BadRequestException("Please complete your self-assessment before joining an event.");
         }
 
-        // Find the event
         Event event = eventRepository.findById(joinEventDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
         
-        // Check if event allows joining
         if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new BadRequestException("Event is not open for joining");
         }
-        
-        // Check if event is full and handle waitlist
+
         boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
         if (event.getMaxParticipants() != null && 
             (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
@@ -175,32 +192,25 @@ public class EventServiceImpl implements EventService {
             if (!event.isAllowWaitList()) {
                 throw new BadRequestException("Event is full and does not allow waitlist");
             }
-            // Set joinWaitList to true if event is full and waitlist is allowed
             isWaitList = true;
         }
-        
-        // Handle team-related logic
+
         if (joinEventDto.getTeamId() != null) {
-            // Add player to existing team
             Team team = teamRepository.findById(joinEventDto.getTeamId())
                     .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(joinEventDto.getTeamId())));
-            
-            // Verify team belongs to this event
+
             if (!team.getEvent().getId().equals(event.getId())) {
                 throw new BadRequestException("Team does not belong to this event");
             }
-            
-            // Check if player is already in the team
+
             if (teamPlayerRepository.existsByTeamIdAndPlayerId(team.getId(), joinEventDto.getPlayerId())) {
                 throw new BadRequestException("Player is already in this team");
             }
-            
-            // Check if team is full
+
             if (team.getTeamPlayers().size() >= team.getTeamSize()) {
                 throw new BadRequestException("Team is already full");
             }
-            
-            // Add player to team
+
             TeamPlayer teamPlayer = new TeamPlayer();
             teamPlayer.setTeam(team);
             Player player = new Player();
@@ -208,11 +218,9 @@ public class EventServiceImpl implements EventService {
             teamPlayer.setPlayer(player);
             teamPlayer.setCheckedIn(false);
             teamPlayerRepository.save(teamPlayer);
-            
-            // Save team to ensure averageScore is updated
+
             teamRepository.save(team);
         } else {
-            // No teamId provided, so create a new team regardless of format
             Team team = new Team();
             team.setEvent(event);
             
@@ -224,12 +232,11 @@ public class EventServiceImpl implements EventService {
                 team.setTeamSize(2);
             } else {
                 team.setName("New Team");
-                team.setTeamSize(4); // Default size for TEAM format
+                team.setTeamSize(4);
             }
             
             Team savedTeam = teamRepository.save(team);
-            
-            // Add player as the first member of the new team
+
             TeamPlayer teamPlayer = new TeamPlayer();
             teamPlayer.setTeam(savedTeam);
             Player player = new Player();
@@ -238,11 +245,9 @@ public class EventServiceImpl implements EventService {
             teamPlayer.setCheckedIn(false);
             teamPlayerRepository.save(teamPlayer);
 
-            // Update current participants if not joining waitlist
             if (!isWaitList) {
                 event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
             } else {
-                // Add to waitlist
                 WaitList waitListEntry = new WaitList();
                 waitListEntry.setEventId(event.getId());
                 Player waitingPlayer = new Player();
@@ -266,31 +271,21 @@ public class EventServiceImpl implements EventService {
             Optional<Event> eventOptional = eventRepository.findById(id);
             if (eventOptional.isPresent()) {
                 Event event = eventOptional.get();
-                // Check if the event status allows deletion (e.g., DRAFT or CLOSED)
                 if (event.getStatus() == EventStatus.DRAFT || event.getStatus() == EventStatus.CLOSED) {
-                    // Cascade delete related entities
-                    // Delete matches associated with match groups of this event
                     List<MatchGroup> matchGroups = matchGroupRepository.findAllByEventId(id);
                     for (MatchGroup group : matchGroups) {
                         matchRepository.deleteByMatchGroupId(group.getId());
                     }
-                    // Delete match groups
                     matchGroupRepository.deleteByEventId(id);
-                    // Delete team players
                     teamPlayerRepository.deleteByTeamEventId(id);
-                    // Delete teams
                     teamRepository.deleteByEventId(id);
-                    // Delete waitlist entries
                     waitListRepository.deleteByEventId(id);
-                    // Finally, delete the event itself
                     eventRepository.deleteById(id);
                     successfulDeletes.add(id);
                 } else {
-                    // Event is in a state that does not allow deletion
                     failedDeletes.add(id);
                 }
             } else {
-                // Event not found
                 failedDeletes.add(id);
             }
         }
@@ -299,10 +294,8 @@ public class EventServiceImpl implements EventService {
         data.put("failedDeletes", failedDeletes.size());
         data.put("details", Map.of("successfulIds", successfulDeletes, "failedIds", failedDeletes));
 
-        // Use a common ID for the operation, or null if not applicable for bulk
         Long operationId = (ids != null && ids.length > 0) ? ids[0] : null;
         if (!failedDeletes.isEmpty()) {
-             // If there are failures, the 'id' in ExecutionResult might represent the first failed ID for context
             operationId = failedDeletes.get(0);
         }
         return ExecutionResult.of(operationId, data);

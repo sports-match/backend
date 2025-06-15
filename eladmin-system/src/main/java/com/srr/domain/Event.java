@@ -17,7 +17,6 @@ package com.srr.domain;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.srr.domain.converter.StringListConverter;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import io.swagger.annotations.ApiModelProperty;
@@ -26,6 +25,7 @@ import lombok.Setter;
 import org.hibernate.annotations.*;
 
 import javax.persistence.*;
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
@@ -33,7 +33,9 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
 * @website https://eladmin.vip
@@ -149,9 +151,12 @@ public class Event implements Serializable {
     @Column(name = "poster_image")
     private String posterImage;
 
-    @Column(name = "tags")
-    @Convert(converter = StringListConverter.class)
-    private List<String> tags = new ArrayList<>();
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(name = "event_tag",
+               joinColumns = @JoinColumn(name = "event_id", referencedColumnName = "id"),
+               inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName = "id"))
+    @ApiModelProperty(value = "Tags associated with the event")
+    private Set<Tag> tags = new HashSet<>();
 
     @ManyToOne
     @JoinColumn(name = "organizer_id")

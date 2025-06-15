@@ -22,7 +22,9 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
 * @website https://eladmin.vip
@@ -102,5 +104,5 @@ public class EventDto implements Serializable {
     private List<PlayerDto> coHostPlayers;
     
     @ApiModelProperty(value = "Tags")
-    private List<String> tags;
+    private Set<TagDto> tags = new HashSet<>();
 }
