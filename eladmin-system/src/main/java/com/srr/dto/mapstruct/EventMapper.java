@@ -1,32 +1,33 @@
-/*
-*  Copyright 2019-2025 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
 package com.srr.dto.mapstruct;
 
 import com.srr.domain.Event;
+import com.srr.domain.Tag;
 import com.srr.dto.EventDto;
 import me.zhengjie.base.BaseMapper;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
-* @website https://eladmin.vip
-* @author Chanheng
-* @date 2025-05-18
-**/
-@Mapper(componentModel = "spring", uses = {TagMapper.class}, unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public interface EventMapper extends BaseMapper<EventDto, Event> {
+ * @author Chanheng
+ * @date 2025-05-18
+ **/
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public abstract class EventMapper implements BaseMapper<EventDto, Event> {
+
+    @Override
+    @Mapping(target = "tags", ignore = true)
+    public abstract Event toEntity(EventDto dto);
+
+    @Override
+    @Mapping(target = "tags", expression = "java(this.toString(entity.getTags()))")
+    public abstract EventDto toDto(Event entity);
+
+    protected Set<String> toString(Set<Tag> tags) {
+        return tags.stream().map(Tag::getName).collect(Collectors.toSet());
+    }
 
 }

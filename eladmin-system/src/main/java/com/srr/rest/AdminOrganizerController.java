@@ -6,6 +6,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.utils.ExecutionResult;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,9 +21,16 @@ public class AdminOrganizerController {
 
     private final EventOrganizerService eventOrganizerService;
 
+    @GetMapping
+    @ApiOperation("Update Event Organizer Verification Status")
+    @PreAuthorize("hasAuthority('Admin')")
+    public ResponseEntity<Object> updateOrganizerVerificationStatus(Pageable pageable) {
+        return ResponseEntity.ok(eventOrganizerService.findAll(pageable));
+    }
+
     @PutMapping("/{organizerId}/status")
     @ApiOperation("Update Event Organizer Verification Status")
-    @PreAuthorize("hasAuthority('Admin')") // Refactored from @el.check('organizer:verify')
+    @PreAuthorize("hasAuthority('Admin')")
     public ResponseEntity<Object> updateOrganizerVerificationStatus(
             @PathVariable Long organizerId,
             @Validated @RequestBody OrganizerVerificationDto verificationDto) {

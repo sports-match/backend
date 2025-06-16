@@ -47,20 +47,20 @@ public class EventServiceImpl implements EventService {
     private final EventOrganizerRepository eventOrganizerRepository;
     private final TagRepository tagRepository;
 
-    private Set<Tag> processIncomingTags(Set<Tag> tagsFromResource) {
+    private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
             return new HashSet<>();
         }
         Set<Tag> managedTags = new HashSet<>();
-        for (Tag inputTag : tagsFromResource) {
-            if (inputTag.getName() != null && !inputTag.getName().trim().isEmpty()) {
-                String tagName = inputTag.getName().trim();
+        for (String inputTag : tagsFromResource) {
+            if (inputTag != null && !inputTag.trim().isEmpty()) {
+                String tagName = inputTag.trim();
                 Tag persistentTag = tagRepository.findByName(tagName)
-                    .orElseGet(() -> {
-                        Tag newTag = new Tag();
-                        newTag.setName(tagName);
-                        return newTag;
-                    });
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return newTag;
+                        });
                 managedTags.add(persistentTag);
             }
         }
@@ -109,30 +109,37 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public EventDto create(Event resources) {
+    @Transactional
+    public EventDto create(EventDto resource) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
-        List<EventOrganizer> organizerList = eventOrganizerRepository.findByUserId(currentUserId);
-        if (!organizerList.isEmpty()) {
-            EventOrganizer organizer = organizerList.get(0);
+        var event = eventMapper.toEntity(resource);
+
+        Optional<EventOrganizer> organizerList = eventOrganizerRepository.findFirstByUserId(currentUserId);
+        if (organizerList.isPresent()) {
+            EventOrganizer organizer = organizerList.get();
             if (organizer.getVerificationStatus() != VerificationStatus.VERIFIED) {
                 throw new BadRequestException("Organizer account is not verified. Event creation is not allowed.");
             }
+            if (resource.getClubId() != null) {
+                // club must be linked to the organizer
+                validateOrganizerClubPermission(organizer, resource.getClubId());
+            }
+            event.setOrganizer(organizer);
         }
 
         // Set the creator of the event using the Long ID directly
-        if (resources.getCreateBy() == null) { // Event.java has 'createBy' as Long
-             resources.setCreateBy(currentUserId);
+        if (resource.getCreateBy() == null) { // Event.java has 'createBy' as Long
+            event.setCreateBy(currentUserId);
         }
         // If organizerList is empty, it means the user is not an organizer (e.g., an admin),
         // so the check is bypassed. Permission to create is handled by @PreAuthorize.
 
-        resources.setStatus(EventStatus.PUBLISHED);
-        Set<Tag> processedTags = processIncomingTags(resources.getTags());
-        resources.setTags(processedTags);
+        event.setStatus(EventStatus.PUBLISHED);
+        Set<Tag> processedTags = processIncomingTags(resource.getTags());
+        event.setTags(processedTags);
 
-        final var result = eventRepository.save(resources);
+        final var result = eventRepository.save(event);
         return eventMapper.toDto(result);
     }
 
@@ -143,7 +150,7 @@ public class EventServiceImpl implements EventService {
         ValidationUtil.isNull(event.getId(), "Event", "id", resources.getId());
         // Add status validation: only allow update if not PUBLISHED, CHECK_IN, IN_PROGRESS, CLOSED, or DELETED
         if (!(event.getStatus() == EventStatus.PUBLISHED ||
-            event.getStatus() == EventStatus.CHECK_IN )) {
+                event.getStatus() == EventStatus.CHECK_IN)) {
             throw new BadRequestException("Cannot update event with status: " + event.getStatus());
         }
         event.copy(resources);
@@ -180,15 +187,15 @@ public class EventServiceImpl implements EventService {
 
         Event event = eventRepository.findById(joinEventDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
-        
+
         if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new BadRequestException("Event is not open for joining");
         }
 
         boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
-        if (event.getMaxParticipants() != null && 
-            (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
-            !isWaitList) {
+        if (event.getMaxParticipants() != null &&
+                (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
+                !isWaitList) {
             if (!event.isAllowWaitList()) {
                 throw new BadRequestException("Event is full and does not allow waitlist");
             }
@@ -223,7 +230,7 @@ public class EventServiceImpl implements EventService {
         } else {
             Team team = new Team();
             team.setEvent(event);
-            
+
             if (event.getFormat() == Format.SINGLE) {
                 team.setName("Player " + joinEventDto.getPlayerId());
                 team.setTeamSize(1);
@@ -234,7 +241,7 @@ public class EventServiceImpl implements EventService {
                 team.setName("New Team");
                 team.setTeamSize(4);
             }
-            
+
             Team savedTeam = teamRepository.save(team);
 
             TeamPlayer teamPlayer = new TeamPlayer();
@@ -256,7 +263,7 @@ public class EventServiceImpl implements EventService {
                 waitListRepository.save(waitListEntry);
             }
         }
-        
+
         eventRepository.save(event);
         return eventMapper.toDto(event);
     }
@@ -324,11 +331,11 @@ public class EventServiceImpl implements EventService {
         FileUtil.downloadExcel(list, response);
     }
 
-    @Override
-    public void validateOrganizerClubPermission(Long organizerId, Long clubId) {
-        EventOrganizer organizer = eventOrganizerRepository.findById(organizerId)
-            .orElseThrow(() -> new IllegalArgumentException("Organizer not found"));
-        boolean allowed = organizer.getClubs().stream().anyMatch(club -> club.getId().equals(clubId));
+    private void validateOrganizerClubPermission(EventOrganizer organizer, Long clubId) {
+        boolean allowed = organizer
+                .getClubs()
+                .stream()
+                .anyMatch(club -> club.getId().equals(clubId));
         if (!allowed) {
             throw new org.springframework.security.access.AccessDeniedException("Organizer is not allowed to manage this club");
         }

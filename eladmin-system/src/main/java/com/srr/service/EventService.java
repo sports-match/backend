@@ -62,7 +62,7 @@ public interface EventService {
     * Create
     * @param resources /
     */
-    EventDto create(Event resources);
+    EventDto create(EventDto resources);
 
     /**
     * Edit
@@ -94,10 +94,4 @@ public interface EventService {
     */
     void download(List<EventDto> all, HttpServletResponse response) throws IOException;
 
-    /**
-     * Validate if an organizer is allowed to create an event for a club
-     * @param organizerId ID of the organizer
-     * @param clubId ID of the club
-     */
-    void validateOrganizerClubPermission(Long organizerId, Long clubId);
 }
