@@ -8,4 +8,5 @@ import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface TagMapper extends BaseMapper<TagDto, Tag> {
+
 }

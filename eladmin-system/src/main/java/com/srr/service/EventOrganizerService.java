@@ -4,6 +4,8 @@ import com.srr.domain.Club;
 import com.srr.domain.EventOrganizer;
 import com.srr.enumeration.VerificationStatus;
 import me.zhengjie.utils.ExecutionResult;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Set;
@@ -19,13 +21,15 @@ public interface EventOrganizerService {
      * @return Execution result with the created entity's ID
      */
     ExecutionResult create(EventOrganizer resources);
-    
+
     /**
      * Find event organizers by user ID
      * @param userId The user ID to search for
      * @return List of event organizers associated with the user
      */
     List<EventOrganizer> findByUserId(Long userId);
+
+    Page<EventOrganizer> findAll(Pageable pageable);
 
     /**
      * Update the verification status of an event organizer.
