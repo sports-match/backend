@@ -56,7 +56,7 @@ public class PlayerAnswerController {
     
     @ApiOperation("Submit player self-assessment answers")
     @PostMapping("/submit-assessment")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAuthority('Player')")
     public ResponseEntity<List<PlayerAnswerDto>> submitSelfAssessment(
             @Validated @RequestBody PlayerSelfAssessmentRequest request) {
         String sport = (request.getSport() == null || request.getSport().isEmpty()) ? "Badminton" : request.getSport();

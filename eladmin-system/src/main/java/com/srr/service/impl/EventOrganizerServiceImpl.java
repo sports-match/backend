@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.utils.ExecutionResult;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,11 @@ public class EventOrganizerServiceImpl implements EventOrganizerService {
     @Override
     public List<EventOrganizer> findByUserId(Long userId) {
         return eventOrganizerRepository.findByUserId(userId);
+    }
+
+    @Override
+    public Page<EventOrganizer> findAll(Pageable pageable) {
+        return eventOrganizerRepository.findAll(pageable);
     }
 
     @Override

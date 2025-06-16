@@ -51,11 +51,9 @@ public class EventOrganizer implements Serializable {
     private Long userId;
 
     @ManyToMany
-    @JoinTable(
-            name = "organizer_club",
+    @JoinTable(name = "organizer_club",
             joinColumns = @JoinColumn(name = "organizer_id"),
-            inverseJoinColumns = @JoinColumn(name = "club_id")
-    )
+            inverseJoinColumns = @JoinColumn(name = "club_id"))
     @ApiModelProperty(value = "Clubs this organizer can manage")
     private Set<Club> clubs = new HashSet<>();
 

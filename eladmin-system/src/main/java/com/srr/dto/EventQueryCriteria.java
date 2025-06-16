@@ -15,6 +15,7 @@
 */
 package com.srr.dto;
 
+import com.srr.dto.enums.EventTimeFilter;
 import com.srr.enumeration.Format;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -24,7 +25,6 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
-* @website https://eladmin.vip
 * @author Chanheng
 * @date 2025-05-18
 **/
@@ -62,4 +62,6 @@ public class EventQueryCriteria{
     /** BETWEEN */
     @Query(type = Query.Type.BETWEEN)
     private List<Timestamp> eventTime;
+
+    private EventTimeFilter eventTimeFilter;
 }

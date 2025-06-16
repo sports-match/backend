@@ -220,57 +220,15 @@ public class AuthController {
 
         ExecutionResult executionResult = userService.create(user);
         Long newUserId = executionResult.id();
-
-        // Handle different user types
-        if (registerDto.getUserType() == UserType.PLAYER) {
-            Player player = new Player();
-            player.setUserId(newUserId);
-            // player.setRateScore(0.0); // Initial rate score or leave null
-            playerService.create(player);
-        } else if (registerDto.getUserType() == UserType.ORGANIZER) {
-            if (registerDto.getClubId() != null) {
-                Club club = clubRepository.findById(registerDto.getClubId())
-                        .orElseThrow(() -> new EntityNotFoundException(Club.class, "id", registerDto.getClubId()));
-                EventOrganizer eventOrganizer = new EventOrganizer();
-                eventOrganizer.setUserId(newUserId);
-                eventOrganizer.addClub(club);
-                // verificationStatus will default to PENDING as per EventOrganizer entity
-                eventOrganizerService.create(eventOrganizer);
-            } else {
-                // Optionally handle case where ORGANIZER is registered without a clubId,
-                // or make clubId mandatory for ORGANIZER type at DTO validation level.
-                // For now, we allow an organizer to be created without a club affiliation.
-                EventOrganizer eventOrganizer = new EventOrganizer();
-                eventOrganizer.setUserId(newUserId);
-                eventOrganizerService.create(eventOrganizer);
-            }
-        }
-
+        createUserTypeEntity(user);
         // Send verification email
         sendEmail(registerDto.getEmail());
-
         Map<String, Object> response = new HashMap<>();
         response.put("userId", newUserId);
         response.put("email", registerDto.getEmail());
         response.put("username", registerDto.getUsername());
         response.put("requireEmailVerification", true);
         response.put("message", "Please check your email to verify your account");
-
-        // --- Add entity id if created (playerId or organizerId) ---
-        if (registerDto.getUserType() != null) {
-            if (registerDto.getUserType().name().equals("PLAYER")) {
-                Player player = playerService.findByUserId(executionResult.id());
-                if (player != null) {
-                    response.put("playerId", player.getId());
-                }
-            } else if (registerDto.getUserType().name().equals("ORGANIZER")) {
-                List<EventOrganizer> organizers = eventOrganizerService.findByUserId(executionResult.id());
-                if (organizers != null && !organizers.isEmpty()) {
-                    response.put("organizerId", organizers.get(0).getId());
-                }
-            }
-        }
-
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -294,7 +252,7 @@ public class AuthController {
         ExecutionResult result = userService.updateEmailVerificationStatus(user);
 
         // Create the appropriate entity based on user type
-        createUserTypeEntity(user);
+        // createUserTypeEntity(user);
 
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
