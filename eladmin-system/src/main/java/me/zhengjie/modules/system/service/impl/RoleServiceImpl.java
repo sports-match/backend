@@ -161,13 +161,25 @@ public class RoleServiceImpl implements RoleService {
         String key = CacheKey.ROLE_AUTH + userId;
         List<AuthorityDto> authorityDtos = redisUtils.getList(key, AuthorityDto.class);
         if (CollUtil.isEmpty(authorityDtos)) {
-            // 如果是管理员直接返回
-            authorityDtos = roleRepository.findByUserId(userId)
+            final var roles = roleRepository.findByUserId(userId)
                     .stream()
                     .map(Role::getName)
                     .filter(StringUtils::isNotBlank)
-                    .map(AuthorityDto::new)
-                    .collect(Collectors.toList());
+                    .toList();
+
+            if (roles.contains("Admin")) {
+                authorityDtos = roleRepository.findAll()
+                        .stream()
+                        .map(Role::getName)
+                        .map(AuthorityDto::new)
+                        .toList();
+            } else {
+                // 如果是管理员直接返回
+                authorityDtos = roles.stream()
+                        .map(AuthorityDto::new)
+                        .toList();
+            }
+
 
             redisUtils.set(key, authorityDtos, 1, TimeUnit.HOURS);
         }
