@@ -15,11 +15,11 @@
 */
 package com.srr.service.impl;
 
-import com.srr.domain.Court;
-import com.srr.dto.CourtDto;
+import com.srr.club.domain.Court;
+import com.srr.club.dto.CourtDto;
 import com.srr.dto.CourtQueryCriteria;
-import com.srr.dto.mapstruct.CourtMapper;
-import com.srr.repository.CourtRepository;
+import com.srr.club.dto.CourtMapper;
+import com.srr.club.domain.CourtRepository;
 import com.srr.service.CourtService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.utils.*;

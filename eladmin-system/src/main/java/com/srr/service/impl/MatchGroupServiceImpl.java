@@ -1,10 +1,10 @@
 package com.srr.service.impl;
 
-import com.srr.domain.Event;
+import com.srr.event.domain.Event;
 import com.srr.domain.MatchGroup;
 import com.srr.domain.Team;
-import com.srr.event.MatchGroupCreatedEvent;
-import com.srr.repository.EventRepository;
+import com.srr.event.listener.MatchGroupCreatedEvent;
+import com.srr.event.domain.EventRepository;
 import com.srr.repository.MatchGroupRepository;
 import com.srr.repository.TeamRepository;
 import com.srr.service.MatchGroupService;

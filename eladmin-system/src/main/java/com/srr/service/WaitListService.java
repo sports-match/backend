@@ -15,8 +15,8 @@
  */
 package com.srr.service;
 
-import com.srr.domain.WaitList;
-import com.srr.dto.WaitListDto;
+import com.srr.event.domain.WaitList;
+import com.srr.event.dto.WaitListDto;
 import com.srr.dto.WaitListQueryCriteria;
 import me.zhengjie.utils.ExecutionResult;
 import me.zhengjie.utils.PageResult;

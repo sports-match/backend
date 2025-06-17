@@ -13,11 +13,11 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 */
-package com.srr.service;
+package com.srr.club.service;
 
-import com.srr.club.domain.Court;
-import com.srr.club.dto.CourtDto;
-import com.srr.dto.CourtQueryCriteria;
+import com.srr.club.domain.Club;
+import com.srr.club.dto.ClubDto;
+import com.srr.club.dto.ClubQueryCriteria;
 import me.zhengjie.utils.ExecutionResult;
 import me.zhengjie.utils.PageResult;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +32,7 @@ import java.util.List;
 * @author Chanheng
 * @date 2025-05-18
 **/
-public interface CourtService {
+public interface ClubService {
 
     /**
     * Query data with pagination
@@ -40,38 +40,38 @@ public interface CourtService {
     * @param pageable pagination parameters
     * @return Map<String,Object>
     */
-    PageResult<CourtDto> queryAll(CourtQueryCriteria criteria, Pageable pageable);
+    PageResult<ClubDto> queryAll(ClubQueryCriteria criteria, Pageable pageable);
 
     /**
     * Query all data without pagination
     * @param criteria criteria parameters
-    * @return List<CourtDto>
+    * @return List<ClubDto>
     */
-    List<CourtDto> queryAll(CourtQueryCriteria criteria);
+    List<ClubDto> queryAll(ClubQueryCriteria criteria);
 
     /**
      * Query by ID
      * @param id ID
-     * @return CourtDto
+     * @return ClubDto
      */
-    CourtDto findById(Long id);
+    ClubDto findById(Long id);
 
     /**
     * Create
     * @param resources /
     * @return ExecutionResult containing the created entity ID
     */
-    ExecutionResult create(Court resources);
+    ExecutionResult create(Club resources);
 
     /**
     * Edit
     * @param resources /
     * @return ExecutionResult containing the updated entity ID
     */
-    ExecutionResult update(Court resources);
+    ExecutionResult update(Club resources);
 
     /**
-    * Multi-select delete
+    * Multiple selection delete
     * @param ids /
     * @return ExecutionResult containing the deleted IDs
     */
@@ -83,5 +83,5 @@ public interface CourtService {
     * @param response /
     * @throws IOException /
     */
-    void download(List<CourtDto> all, HttpServletResponse response) throws IOException;
+    void download(List<ClubDto> all, HttpServletResponse response) throws IOException;
 }

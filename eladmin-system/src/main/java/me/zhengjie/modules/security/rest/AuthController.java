@@ -2,12 +2,11 @@
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
-import com.srr.domain.Club;
-import com.srr.domain.EventOrganizer;
+import com.srr.organizer.domain.EventOrganizer;
 import com.srr.domain.Player;
 import com.srr.domain.PlayerSportRating;
 import com.srr.dto.PlayerAssessmentStatusDto;
-import com.srr.repository.ClubRepository;
+import com.srr.club.domain.ClubRepository;
 import com.srr.repository.PlayerSportRatingRepository;
 import com.srr.service.EventOrganizerService;
 import com.srr.service.PlayerService;

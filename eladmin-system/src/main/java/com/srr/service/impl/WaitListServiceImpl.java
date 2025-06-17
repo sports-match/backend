@@ -15,13 +15,13 @@
  */
 package com.srr.service.impl;
 
-import com.srr.domain.Event;
-import com.srr.domain.WaitList;
-import com.srr.dto.WaitListDto;
+import com.srr.event.domain.Event;
+import com.srr.event.domain.WaitList;
+import com.srr.event.dto.WaitListDto;
 import com.srr.dto.WaitListQueryCriteria;
 import com.srr.enumeration.WaitListStatus;
-import com.srr.repository.EventRepository;
-import com.srr.repository.WaitListRepository;
+import com.srr.event.domain.EventRepository;
+import com.srr.event.domain.WaitListRepository;
 import com.srr.service.WaitListService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;

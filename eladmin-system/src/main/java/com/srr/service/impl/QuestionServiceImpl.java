@@ -2,10 +2,10 @@ package com.srr.service.impl;
 
 import com.srr.domain.MatchFormat;
 import com.srr.domain.Question;
-import com.srr.domain.Sport;
+import com.srr.sport.domain.Sport;
 import com.srr.dto.QuestionDto;
 import com.srr.repository.QuestionRepository;
-import com.srr.repository.SportRepository;
+import com.srr.sport.domain.SportRepository;
 import com.srr.service.QuestionService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;

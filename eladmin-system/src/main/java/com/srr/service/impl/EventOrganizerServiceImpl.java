@@ -1,10 +1,10 @@
 package com.srr.service.impl;
 
-import com.srr.domain.Club;
-import com.srr.domain.EventOrganizer;
+import com.srr.club.domain.Club;
+import com.srr.organizer.domain.EventOrganizer;
 import com.srr.enumeration.VerificationStatus;
-import com.srr.repository.ClubRepository;
-import com.srr.repository.EventOrganizerRepository;
+import com.srr.club.domain.ClubRepository;
+import com.srr.organizer.domain.EventOrganizerRepository;
 import com.srr.service.EventOrganizerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

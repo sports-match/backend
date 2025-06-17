@@ -1,7 +1,7 @@
 package com.srr.service;
 
-import com.srr.domain.Club;
-import com.srr.domain.EventOrganizer;
+import com.srr.club.domain.Club;
+import com.srr.organizer.domain.EventOrganizer;
 import com.srr.enumeration.VerificationStatus;
 import me.zhengjie.utils.ExecutionResult;
 import org.springframework.data.domain.Page;

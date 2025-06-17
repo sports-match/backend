@@ -1,6 +1,6 @@
 package com.srr.service;
 
-import com.srr.dto.TagDto;
+import com.srr.event.dto.TagDto;
 
 import java.util.List;
 

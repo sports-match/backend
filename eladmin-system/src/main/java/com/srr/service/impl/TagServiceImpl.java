@@ -1,8 +1,8 @@
 package com.srr.service.impl;
 
-import com.srr.dto.TagDto;
-import com.srr.dto.mapstruct.TagMapper;
-import com.srr.repository.TagRepository;
+import com.srr.event.dto.TagDto;
+import com.srr.event.dto.TagMapper;
+import com.srr.event.domain.TagRepository;
 import com.srr.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

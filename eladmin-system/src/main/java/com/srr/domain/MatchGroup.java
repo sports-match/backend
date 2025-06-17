@@ -1,5 +1,6 @@
 package com.srr.domain;
 
+import com.srr.event.domain.Event;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
