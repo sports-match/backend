@@ -29,5 +29,4 @@ public abstract class EventMapper implements BaseMapper<EventDto, Event> {
     protected Set<String> toString(Set<Tag> tags) {
         return tags.stream().map(Tag::getName).collect(Collectors.toSet());
     }
-
 }
