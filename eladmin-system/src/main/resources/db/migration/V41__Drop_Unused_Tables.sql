@@ -1,8 +1,6 @@
 
 -- event_tag is used as a join table, do NOT drop
 -- DROP TABLE IF EXISTS event_tag;
-DROP TABLE IF EXISTS code_column;
-DROP TABLE IF EXISTS code_config;
 DROP TABLE IF EXISTS mnt_app;
 DROP TABLE IF EXISTS mnt_database;
 DROP TABLE IF EXISTS mnt_deploy;
