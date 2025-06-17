@@ -1,10 +1,7 @@
 package com.srr.rest;
 
 import com.srr.domain.Event;
-import com.srr.dto.EventDto;
-import com.srr.dto.EventQueryCriteria;
-import com.srr.dto.JoinEventDto;
-import com.srr.dto.TeamPlayerDto;
+import com.srr.dto.*;
 import com.srr.enumeration.EventStatus;
 import com.srr.service.EventService;
 import com.srr.service.MatchGroupService;
@@ -81,7 +78,7 @@ public class EventController {
     @ApiOperation("Update event status")
     @PreAuthorize("hasAuthority('Organizer')")
     public ResponseEntity<Object> updateEventStatus(
-            @PathVariable Long id, 
+            @PathVariable Long id,
             @PathVariable EventStatus status) {
         final var result = eventService.updateStatus(id, status);
         return new ResponseEntity<>(result, HttpStatus.OK);
@@ -104,18 +101,18 @@ public class EventController {
     public ResponseEntity<List<TeamPlayerDto>> findEventPlayers(@PathVariable("id") Long eventId) {
         return new ResponseEntity<>(teamPlayerService.findByEventId(eventId), HttpStatus.OK);
     }
-    
+
     @PostMapping("{id}/generate-groups")
     @Log("Generate match groups")
     @ApiOperation("Generate match groups based on team scores")
     @PreAuthorize("hasAuthority('Organizer')")
     public ResponseEntity<Object> generateMatchGroups(@PathVariable("id") Long id) {
         Integer groupsCreated = matchGroupService.generateMatchGroups(id);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("groupsCreated", groupsCreated);
         result.put("message", "Successfully created " + groupsCreated + " match groups based on team scores");
-        
+
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -125,6 +122,13 @@ public class EventController {
     @PreAuthorize("hasAuthority('Organizer')")
     public ResponseEntity<Object> deleteEvent(@ApiParam(value = "Pass ID array[]") @RequestBody Long[] ids) {
         eventService.deleteAll(ids);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("{id}/remind")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<Object> remind(@PathVariable Long id, @RequestBody RemindDto remindDto) {
+        eventService.remind(id, remindDto);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

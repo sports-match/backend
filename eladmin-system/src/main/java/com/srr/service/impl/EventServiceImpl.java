@@ -4,6 +4,7 @@ import com.srr.domain.*;
 import com.srr.dto.EventDto;
 import com.srr.dto.EventQueryCriteria;
 import com.srr.dto.JoinEventDto;
+import com.srr.dto.RemindDto;
 import com.srr.dto.enums.EventTimeFilter;
 import com.srr.dto.mapstruct.EventMapper;
 import com.srr.enumeration.EventStatus;
@@ -21,8 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.criteria.Predicate;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
@@ -308,29 +307,6 @@ public class EventServiceImpl implements EventService {
         return ExecutionResult.of(operationId, data);
     }
 
-    @Override
-    public void download(List<EventDto> all, HttpServletResponse response) throws IOException {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (EventDto event : all) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("Event Name", event.getName());
-            map.put("Description", event.getDescription());
-            map.put("Event Time", event.getEventTime());
-            map.put("Location", event.getLocation());
-            map.put("Format", event.getFormat());
-            map.put("Max Participants", event.getMaxParticipants());
-            map.put("Current Participants", event.getCurrentParticipants());
-            map.put("Status", event.getStatus());
-            map.put("Allow WaitList", event.isAllowWaitList());
-            map.put("Check-in At", event.getCheckInAt());
-            map.put("Created By ID", event.getCreateBy());
-            map.put("Create Time", event.getCreateTime());
-            map.put("Update Time", event.getUpdateTime());
-            list.add(map);
-        }
-        FileUtil.downloadExcel(list, response);
-    }
-
     private void validateOrganizerClubPermission(EventOrganizer organizer, Long clubId) {
         boolean allowed = organizer
                 .getClubs()
@@ -339,5 +315,10 @@ public class EventServiceImpl implements EventService {
         if (!allowed) {
             throw new org.springframework.security.access.AccessDeniedException("Organizer is not allowed to manage this club");
         }
+    }
+
+    @Override
+    public ExecutionResult remind(Long id, RemindDto remindDto) {
+        return null;
     }
 }
