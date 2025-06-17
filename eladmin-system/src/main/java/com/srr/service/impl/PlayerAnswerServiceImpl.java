@@ -7,6 +7,7 @@ import com.srr.repository.PlayerRepository;
 import com.srr.repository.PlayerSportRatingRepository;
 import com.srr.repository.QuestionRepository;
 import com.srr.service.PlayerAnswerService;
+import com.srr.service.RatingService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
@@ -34,6 +35,7 @@ public class PlayerAnswerServiceImpl implements PlayerAnswerService {
     private final QuestionRepository questionRepository;
     private final PlayerRepository playerRepository;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final RatingService ratingService;
 
     @Override
     public PageResult<PlayerAnswerDto> queryAll(PlayerAnswerDto criteria, Pageable pageable) {
@@ -195,30 +197,18 @@ public class PlayerAnswerServiceImpl implements PlayerAnswerService {
         if (answers.isEmpty()) {
             return;
         }
-        int total = answers.stream().mapToInt(PlayerAnswer::getAnswerValue).sum();
-        double srrd;
-        String band;
-        if (total <= 9) {
-            srrd = 1000;
-            band = "BEGINNER";
-        } else if (total <= 15) {
-            srrd = 1200;
-            band = "INTERMEDIATE";
-        } else if (total <= 18) {
-            srrd = 1400;
-            band = "ADVANCED";
-        } else {
-            srrd = 1600;
-            band = "EXPERT";
+        double srrd = ratingService.calculateInitialRating(answers);
+        // Apply rating to both singles and doubles
+        for (MatchFormat fmt : MatchFormat.values()) {
+            PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, fmt.name())
+                    .orElse(new PlayerSportRating());
+            rating.setPlayerId(playerId);
+            rating.setSport(sport);
+            rating.setFormat(fmt.name());
+            rating.setRateScore(srrd);
+            rating.setRateBand(null);
+            rating.setProvisional(true);
+            playerSportRatingRepository.save(rating);
         }
-        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
-            .orElse(new PlayerSportRating());
-        rating.setPlayerId(playerId);
-        rating.setSport(sport);
-        rating.setFormat(format);
-        rating.setRateScore(srrd);
-        rating.setRateBand(band);
-        rating.setProvisional(true);
-        playerSportRatingRepository.save(rating);
     }
 }
