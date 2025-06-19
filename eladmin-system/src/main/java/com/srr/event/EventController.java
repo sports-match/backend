@@ -12,7 +12,6 @@ import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.service.TeamPlayerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.annotation.Log;
 import me.zhengjie.utils.PageResult;
@@ -99,6 +98,24 @@ public class EventController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
+    @PostMapping("/{id}/withdraw")
+    @Log("Withdraw from event")
+    @ApiOperation("Withdraw from event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> withdrawFromEvent(@PathVariable Long id) {
+        final EventDto result = eventService.withdrawFromEvent(id);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/check-in")
+    @Log("Check-in for event")
+    @ApiOperation("Check-in for event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> checkInForEvent(@PathVariable Long id) {
+        final TeamPlayerDto result = teamPlayerService.checkInForEvent(id);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
     @GetMapping("/{id}/players")
     @ApiOperation("Find all team players in an event")
     @PreAuthorize("hasAuthority('Organizer')")
@@ -124,15 +141,17 @@ public class EventController {
     @Log("Delete event")
     @ApiOperation("Delete event")
     @PreAuthorize("hasAuthority('Organizer')")
-    public ResponseEntity<Object> deleteEvent(@ApiParam(value = "Pass ID array[]") @RequestBody Long[] ids) {
-        eventService.deleteAll(ids);
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<Object> deleteEvent(@RequestBody Long[] ids) {
+        final var result = eventService.deleteAll(ids);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    @PostMapping("{id}/remind")
+    @PostMapping("/{id}/remind")
+    @Log("Send reminder for event")
+    @ApiOperation("Send reminder for event")
     @PreAuthorize("hasAuthority('Organizer')")
-    public ResponseEntity<Object> remind(@PathVariable Long id, @RequestBody RemindDto remindDto) {
-        eventService.remind(id, remindDto);
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<Object> remind(@PathVariable Long id, @RequestBody(required = false) RemindDto remindDto) {
+        final var result = eventService.remind(id, remindDto);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 }
