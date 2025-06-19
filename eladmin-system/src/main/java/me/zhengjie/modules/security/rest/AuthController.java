@@ -2,15 +2,13 @@
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
-import com.srr.domain.Club;
-import com.srr.domain.EventOrganizer;
-import com.srr.domain.Player;
-import com.srr.domain.PlayerSportRating;
-import com.srr.dto.PlayerAssessmentStatusDto;
-import com.srr.repository.ClubRepository;
-import com.srr.repository.PlayerSportRatingRepository;
-import com.srr.service.EventOrganizerService;
-import com.srr.service.PlayerService;
+import com.srr.organizer.domain.EventOrganizer;
+import com.srr.organizer.service.EventOrganizerService;
+import com.srr.player.domain.Player;
+import com.srr.player.domain.PlayerSportRating;
+import com.srr.player.dto.PlayerAssessmentStatusDto;
+import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.player.service.PlayerService;
 import com.wf.captcha.base.Captcha;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -49,6 +47,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -82,13 +81,12 @@ public class AuthController {
     private final PlayerService playerService;
     private final EventOrganizerService eventOrganizerService;
     private final RoleRepository roleRepository;
-    private final ClubRepository clubRepository;
     private final PlayerSportRatingRepository playerSportRatingRepository;
 
     private final String REGISTER_KEY_PREFIX = "register:email:";
 
-    @Log("用户登录")
-    @ApiOperation("登录授权")
+    @Log("login")
+    @ApiOperation("login")
     @AnonymousPostMapping(value = "/login")
     public ResponseEntity<Object> login(@Validated @RequestBody AuthUserDto authUser, HttpServletRequest request) {
         // 密码解密
@@ -152,14 +150,14 @@ public class AuthController {
         return ResponseEntity.ok(authInfo);
     }
 
-    @ApiOperation("获取用户信息")
+    @ApiOperation("get logged in user")
     @GetMapping(value = "/info")
     public ResponseEntity<UserDetails> getUserInfo() {
         JwtUserDto jwtUser = (JwtUserDto) SecurityUtils.getCurrentUser();
         return ResponseEntity.ok(jwtUser);
     }
 
-    @ApiOperation("获取验证码")
+    @ApiOperation("get verification code")
     @AnonymousGetMapping(value = "/code")
     public ResponseEntity<Object> getCode() {
         // 获取运算的结果
@@ -188,6 +186,7 @@ public class AuthController {
     }
 
     @ApiOperation("register user")
+    @Transactional
     @AnonymousPostMapping(value = "/register")
     public ResponseEntity<Object> register(@Valid @RequestBody UserRegisterDto registerDto) {
         try {
