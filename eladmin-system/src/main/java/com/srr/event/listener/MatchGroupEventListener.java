@@ -1,7 +1,6 @@
 package com.srr.event.listener;
 
-import com.srr.event.MatchGroupCreatedEvent;
-import com.srr.service.MatchGenerationService;
+import com.srr.event.service.MatchGenerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

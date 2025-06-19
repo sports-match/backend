@@ -2,15 +2,14 @@
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
-import com.srr.domain.Club;
-import com.srr.domain.EventOrganizer;
-import com.srr.domain.Player;
-import com.srr.domain.PlayerSportRating;
-import com.srr.dto.PlayerAssessmentStatusDto;
-import com.srr.repository.ClubRepository;
-import com.srr.repository.PlayerSportRatingRepository;
-import com.srr.service.EventOrganizerService;
-import com.srr.service.PlayerService;
+import com.srr.club.repository.ClubRepository;
+import com.srr.organizer.domain.EventOrganizer;
+import com.srr.organizer.service.EventOrganizerService;
+import com.srr.player.domain.Player;
+import com.srr.player.domain.PlayerSportRating;
+import com.srr.player.dto.PlayerAssessmentStatusDto;
+import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.player.service.PlayerService;
 import com.wf.captcha.base.Captcha;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
