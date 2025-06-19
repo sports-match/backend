@@ -42,8 +42,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Api(hidden = true)
 @SpringBootApplication(scanBasePackages = {"me.zhengjie", "com.srr"})
 @EnableTransactionManagement
-@EnableJpaRepositories(basePackages = {"me.zhengjie.**.repository", "com.srr.repository"})
-@EntityScan(basePackages = {"me.zhengjie.**.domain", "com.srr.domain"})
+@EnableJpaRepositories(basePackages = {"me.zhengjie.**.repository", "com.srr.**.repository"})
+@EntityScan(basePackages = {"me.zhengjie.**.domain", "com.srr.**.domain"})
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 public class AppRun {
 

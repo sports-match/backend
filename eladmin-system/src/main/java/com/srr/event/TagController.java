@@ -1,7 +1,7 @@
 package com.srr.event;
 
 import com.srr.event.dto.TagDto;
-import com.srr.service.TagService;
+import com.srr.event.service.TagService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package com.srr.organizer;
 
 import com.srr.club.domain.Club;
-import com.srr.service.EventOrganizerService;
+import com.srr.organizer.service.EventOrganizerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;

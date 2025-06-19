@@ -17,71 +17,98 @@ package com.srr.club.service;
 
 import com.srr.club.domain.Club;
 import com.srr.club.dto.ClubDto;
+import com.srr.club.dto.ClubMapper;
 import com.srr.club.dto.ClubQueryCriteria;
-import me.zhengjie.utils.ExecutionResult;
-import me.zhengjie.utils.PageResult;
+import com.srr.club.repository.ClubRepository;
+import lombok.RequiredArgsConstructor;
+import me.zhengjie.utils.*;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
 * @website https://eladmin.vip
-* @description Service Interface
+* @description 服务实现
 * @author Chanheng
 * @date 2025-05-18
 **/
-public interface ClubService {
+@Service
+@RequiredArgsConstructor
+public class ClubService {
 
-    /**
-    * Query data with pagination
-    * @param criteria criteria
-    * @param pageable pagination parameters
-    * @return Map<String,Object>
-    */
-    PageResult<ClubDto> queryAll(ClubQueryCriteria criteria, Pageable pageable);
+    private final ClubRepository clubRepository;
+    private final ClubMapper clubMapper;
 
-    /**
-    * Query all data without pagination
-    * @param criteria criteria parameters
-    * @return List<ClubDto>
-    */
-    List<ClubDto> queryAll(ClubQueryCriteria criteria);
+    
+    public PageResult<ClubDto> queryAll(ClubQueryCriteria criteria, Pageable pageable){
+        Page<Club> page = clubRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder),pageable);
+        return PageUtil.toPage(page.map(clubMapper::toDto));
+    }
 
-    /**
-     * Query by ID
-     * @param id ID
-     * @return ClubDto
-     */
-    ClubDto findById(Long id);
+    
+    public List<ClubDto> queryAll(ClubQueryCriteria criteria){
+        return clubMapper.toDto(clubRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder)));
+    }
 
-    /**
-    * Create
-    * @param resources /
-    * @return ExecutionResult containing the created entity ID
-    */
-    ExecutionResult create(Club resources);
+    
+    @Transactional
+    public ClubDto findById(Long id) {
+        Club club = clubRepository.findById(id).orElseGet(Club::new);
+        ValidationUtil.isNull(club.getId(),"Club","id",id);
+        return clubMapper.toDto(club);
+    }
 
-    /**
-    * Edit
-    * @param resources /
-    * @return ExecutionResult containing the updated entity ID
-    */
-    ExecutionResult update(Club resources);
+    
+    @Transactional(rollbackFor = Exception.class)
+    public ExecutionResult create(Club resources) {
+        Club savedClub = clubRepository.save(resources);
+        return ExecutionResult.of(savedClub.getId());
+    }
 
-    /**
-    * Multiple selection delete
-    * @param ids /
-    * @return ExecutionResult containing the deleted IDs
-    */
-    ExecutionResult deleteAll(Long[] ids);
+    
+    @Transactional(rollbackFor = Exception.class)
+    public ExecutionResult update(Club resources) {
+        Club club = clubRepository.findById(resources.getId()).orElseGet(Club::new);
+        ValidationUtil.isNull( club.getId(),"Club","id",resources.getId());
+        club.copy(resources);
+        Club savedClub = clubRepository.save(club);
+        return ExecutionResult.of(savedClub.getId());
+    }
 
-    /**
-    * Export data
-    * @param all data to be exported
-    * @param response /
-    * @throws IOException /
-    */
-    void download(List<ClubDto> all, HttpServletResponse response) throws IOException;
+    
+    @Transactional
+    public ExecutionResult deleteAll(Long[] ids) {
+        for (Long id : ids) {
+            clubRepository.deleteById(id);
+        }
+        return ExecutionResult.of(null, Map.of("count", ids.length, "ids", ids));
+    }
+
+    
+    public void download(List<ClubDto> all, HttpServletResponse response) throws IOException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (ClubDto club : all) {
+            Map<String,Object> map = new LinkedHashMap<>();
+            map.put("名称", club.getName());
+            map.put("描述", club.getDescription());
+            map.put("创建时间", club.getCreateTime());
+            map.put("更新时间", club.getUpdateTime());
+            map.put("图标", club.getIcon());
+            map.put("排序", club.getSort());
+            map.put("是否启用", club.getEnabled());
+            map.put("位置", club.getLocation());
+            map.put("经度", club.getLongitude());
+            map.put("纬度", club.getLatitude());
+            list.add(map);
+        }
+        FileUtil.downloadExcel(list, response);
+    }
 }

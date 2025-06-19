@@ -1,11 +1,11 @@
 package com.srr.event.service;
 
+import com.srr.enumeration.EventStatus;
 import com.srr.event.domain.Event;
 import com.srr.event.dto.EventDto;
-import com.srr.dto.EventQueryCriteria;
+import com.srr.event.dto.EventQueryCriteria;
 import com.srr.event.dto.JoinEventDto;
-import com.srr.dto.RemindDto;
-import com.srr.enumeration.EventStatus;
+import com.srr.event.dto.RemindDto;
 import me.zhengjie.utils.ExecutionResult;
 import me.zhengjie.utils.PageResult;
 import org.springframework.data.domain.Pageable;

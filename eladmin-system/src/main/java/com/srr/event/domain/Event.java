@@ -17,10 +17,11 @@ package com.srr.event.domain;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.srr.domain.*;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.organizer.domain.EventOrganizer;
+import com.srr.player.domain.Player;
+import com.srr.player.domain.Team;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;

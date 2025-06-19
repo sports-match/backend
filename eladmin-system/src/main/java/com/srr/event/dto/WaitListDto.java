@@ -16,8 +16,8 @@
 package com.srr.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.srr.dto.PlayerDto;
 import com.srr.enumeration.WaitListStatus;
+import com.srr.player.dto.PlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,13 +1,15 @@
 package com.srr.event;
 
-import com.srr.event.domain.Event;
-import com.srr.dto.*;
 import com.srr.enumeration.EventStatus;
+import com.srr.event.domain.Event;
 import com.srr.event.dto.EventDto;
+import com.srr.event.dto.EventQueryCriteria;
 import com.srr.event.dto.JoinEventDto;
+import com.srr.event.dto.RemindDto;
 import com.srr.event.service.EventService;
-import com.srr.service.MatchGroupService;
-import com.srr.service.TeamPlayerService;
+import com.srr.event.service.MatchGroupService;
+import com.srr.player.dto.TeamPlayerDto;
+import com.srr.player.service.TeamPlayerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;

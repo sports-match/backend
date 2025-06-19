@@ -15,9 +15,9 @@
 */
 package com.srr.event.dto;
 
-import com.srr.dto.PlayerDto;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
+import com.srr.player.dto.PlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 

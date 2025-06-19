@@ -1,6 +1,6 @@
 package com.srr.event.listener;
 
-import com.srr.domain.MatchGroup;
+import com.srr.event.domain.MatchGroup;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 

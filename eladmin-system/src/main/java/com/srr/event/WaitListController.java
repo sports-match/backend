@@ -17,8 +17,8 @@ package com.srr.event;
 
 import com.srr.event.domain.WaitList;
 import com.srr.event.dto.WaitListDto;
-import com.srr.dto.WaitListQueryCriteria;
-import com.srr.service.WaitListService;
+import com.srr.event.dto.WaitListQueryCriteria;
+import com.srr.event.service.WaitListService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
