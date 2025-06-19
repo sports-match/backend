@@ -25,6 +25,7 @@ import com.srr.player.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
+import me.zhengjie.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +44,12 @@ public class TeamPlayerService {
     private final TeamRepository teamRepository;
     private final TeamPlayerMapper teamPlayerMapper;
 
-    
+    /**
+     * Get TeamPlayer by id
+     *
+     * @param id ID of TeamPlayer
+     * @return TeamPlayerDto
+     */
     @Transactional(readOnly = true)
     public TeamPlayerDto findById(Long id) {
         TeamPlayer teamPlayer = teamPlayerRepository.findById(id)
@@ -51,7 +57,12 @@ public class TeamPlayerService {
         return teamPlayerMapper.toDto(teamPlayer);
     }
 
-    
+    /**
+     * Check in TeamPlayer
+     *
+     * @param id ID of TeamPlayer
+     * @return TeamPlayerDto
+     */
     @Transactional
     public TeamPlayerDto checkIn(Long id) {
         TeamPlayer teamPlayer = teamPlayerRepository.findById(id)
@@ -67,7 +78,30 @@ public class TeamPlayerService {
         return teamPlayerMapper.toDto(teamPlayer);
     }
     
+    /**
+     * Check in TeamPlayer for event
+     *
+     * @param eventId ID of event
+     * @return TeamPlayerDto
+     */
+    @Transactional
+    public TeamPlayerDto checkInForEvent(Long eventId) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
+
+        if (teamPlayer == null) {
+            throw new EntityNotFoundException(TeamPlayer.class, "eventId/userId", eventId + "/" + currentUserId);
+        }
+
+        return checkIn(teamPlayer.getId());
+    }
     
+    /**
+     * Get TeamPlayer by event id
+     *
+     * @param eventId ID of event
+     * @return List of TeamPlayerDto
+     */
     @Transactional(readOnly = true)
     public List<TeamPlayerDto> findByEventId(Long eventId) {
         List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
@@ -76,7 +110,12 @@ public class TeamPlayerService {
                 .collect(Collectors.toList());
     }
     
-    
+    /**
+     * Reassign TeamPlayer to new team
+     *
+     * @param dto TeamPlayerReassignDto
+     * @return TeamPlayerDto
+     */
     @Transactional
     public TeamPlayerDto reassignPlayer(TeamPlayerReassignDto dto) {
         // Find the team player to reassign
