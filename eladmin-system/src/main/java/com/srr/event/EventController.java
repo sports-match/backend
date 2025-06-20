@@ -14,6 +14,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.annotation.Log;
+import me.zhengjie.annotation.rest.AnonymousGetMapping;
 import me.zhengjie.utils.PageResult;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -42,14 +43,14 @@ public class EventController {
 
     @GetMapping
     @ApiOperation("Query event")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @AnonymousGetMapping
     public ResponseEntity<PageResult<EventDto>> queryEvent(EventQueryCriteria criteria, Pageable pageable) {
         return new ResponseEntity<>(eventService.queryAll(criteria, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     @ApiOperation("Get event by ID")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @AnonymousGetMapping
     public ResponseEntity<EventDto> getById(@PathVariable Long id) {
         return new ResponseEntity<>(eventService.findById(id), HttpStatus.OK);
     }
