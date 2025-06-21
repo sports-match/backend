@@ -313,6 +313,14 @@ public class EventService {
 
         // Update team timestamp
         targetTeam.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+
+        // Update averageScore for the team
+        double avg = targetTeam.getTeamPlayers().stream()
+            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", "DOUBLES"))
+            .filter(Optional::isPresent)
+            .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
+            .average().orElse(0.0);
+        targetTeam.setAverageScore(avg);
         teamRepository.save(targetTeam);
 
         // If old team is now empty, delete it
