@@ -78,9 +78,9 @@ public class MatchGroupService {
         if (checkedInTeams.isEmpty()) {
             throw new BadRequestException("No checked-in teams found for event with ID: " + eventId);
         }
-        // Sort checked-in teams by their average score (which is now stored on the Team entity)
+        // Sort checked-in teams by their average score (descending, nulls last)
         List<Team> sortedTeams = checkedInTeams.stream()
-                .sorted(Comparator.comparing(Team::getAverageScore, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(Comparator.comparing(Team::getAverageScore, Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
         
         // Group teams based on their sorted order and the target group count
