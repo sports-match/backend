@@ -42,6 +42,10 @@ public class Team implements Serializable {
     @ApiModelProperty(value = "Average team score based on player scores")
     private Double averageScore = 0.0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private com.srr.enumeration.TeamStatus status = com.srr.enumeration.TeamStatus.REGISTERED;
+
     @OneToMany(mappedBy = "team")
     @ApiModelProperty(value = "teamPlayers")
     private List<TeamPlayer> teamPlayers;

@@ -3,6 +3,8 @@ package com.srr.event.service;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.EventTimeFilter;
 import com.srr.enumeration.Format;
+import com.srr.enumeration.TeamPlayerStatus;
+import com.srr.enumeration.TeamStatus;
 import com.srr.enumeration.VerificationStatus;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
@@ -18,6 +20,7 @@ import com.srr.player.domain.TeamPlayer;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
+import com.srr.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
@@ -57,6 +60,7 @@ public class EventService {
     private final TagRepository tagRepository;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final PlayerService playerService;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -280,6 +284,7 @@ public class EventService {
         if (playerId == null) {
             throw new BadRequestException("Player ID is required to join event");
         }
+        final var playerDto = playerService.findById(playerId);
         var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", "DOUBLES");
         if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
             throw new BadRequestException("Please complete your self-assessment before joining an event.");
@@ -329,6 +334,8 @@ public class EventService {
             player.setId(joinEventDto.getPlayerId());
             teamPlayer.setPlayer(player);
             teamPlayer.setCheckedIn(false);
+            teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
+            teamPlayer.setRegistrationTime(new Timestamp(System.currentTimeMillis()));
             teamPlayerRepository.save(teamPlayer);
 
             teamRepository.save(team);
@@ -346,7 +353,7 @@ public class EventService {
                 team.setName("New Team");
                 team.setTeamSize(4);
             }
-
+            team.setStatus(TeamStatus.REGISTERED);
             Team savedTeam = teamRepository.save(team);
 
             TeamPlayer teamPlayer = new TeamPlayer();
@@ -355,6 +362,8 @@ public class EventService {
             player.setId(joinEventDto.getPlayerId());
             teamPlayer.setPlayer(player);
             teamPlayer.setCheckedIn(false);
+            teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
+            teamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
             teamPlayerRepository.save(teamPlayer);
 
             if (!isWaitList) {
@@ -395,8 +404,19 @@ public class EventService {
         // Check if player is on the main list
         TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
         if (teamPlayer != null) {
+            teamPlayer.setStatus(TeamPlayerStatus.WITHDRAWN);
+            teamPlayerRepository.save(teamPlayer);
+
+            // Check if all team players are withdrawn, then set team status
             Team team = teamPlayer.getTeam();
-            teamPlayerRepository.delete(teamPlayer);
+            boolean allWithdrawn = team.getTeamPlayers().stream().allMatch(tp -> tp.getStatus() == TeamPlayerStatus.WITHDRAWN);
+            if (allWithdrawn) {
+                team.setStatus(TeamStatus.WITHDRAWN);
+                teamRepository.save(team);
+            }
+
+            TeamPlayer teamPlayer1 = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
+            teamPlayerRepository.delete(teamPlayer1);
 
             // If the team becomes empty after withdrawal, delete it
             if (team.getTeamPlayers().size() == 1) { // 1 because the player is about to be removed
