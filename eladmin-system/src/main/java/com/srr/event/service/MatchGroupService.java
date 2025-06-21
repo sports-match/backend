@@ -63,8 +63,23 @@ public class MatchGroupService {
             }
         }
         
-        // Sort teams by their average score (which is now stored on the Team entity)
-        List<Team> sortedTeams = teams.stream()
+        // Filter to only checked-in teams
+        List<Team> checkedInTeams = teams.stream()
+            .filter(t -> t.getStatus() == com.srr.enumeration.TeamStatus.CHECKED_IN)
+            .collect(Collectors.toList());
+        // Find teams that are REGISTERED (not withdrawn, not checked-in)
+        List<Team> notCheckedInTeams = teams.stream()
+            .filter(t -> t.getStatus() == com.srr.enumeration.TeamStatus.REGISTERED)
+            .collect(Collectors.toList());
+        if (!notCheckedInTeams.isEmpty()) {
+            //String notCheckedInNames = notCheckedInTeams.stream().map(Team::getName).collect(Collectors.joining(", "));
+            throw new BadRequestException("The teams are registered but not checked in. All teams must be checked in before group formation.");
+        }
+        if (checkedInTeams.isEmpty()) {
+            throw new BadRequestException("No checked-in teams found for event with ID: " + eventId);
+        }
+        // Sort checked-in teams by their average score (which is now stored on the Team entity)
+        List<Team> sortedTeams = checkedInTeams.stream()
                 .sorted(Comparator.comparing(Team::getAverageScore, Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
         
@@ -84,29 +99,21 @@ public class MatchGroupService {
     }
     
     /**
-     * Group teams based strictly on their score order
+     * Group teams by rating: highest rated teams in group 1, next highest in group 2, etc.
      */
     private List<List<Team>> createTeamGroups(List<Team> sortedTeams, int targetGroupCount) {
         int totalTeams = sortedTeams.size();
-        
-        // Don't create more groups than we have teams
         int actualGroupCount = Math.min(targetGroupCount, totalTeams);
-        
-        // Initialize the groups
         List<List<Team>> groups = new ArrayList<>(actualGroupCount);
         for (int i = 0; i < actualGroupCount; i++) {
             groups.add(new ArrayList<>());
         }
-        
-        // Distribute teams to groups in a round-robin fashion based on their sorted order
-        // Teams with similar scores will naturally be placed in different groups
-        for (int i = 0; i < sortedTeams.size(); i++) {
-            Team team = sortedTeams.get(i);
-            // Use modulo to distribute teams evenly among groups
-            int groupIndex = i % actualGroupCount;
-            groups.get(groupIndex).add(team);
+        // Fill groups sequentially: group 1 gets top N/targetGroupCount, etc.
+        for (int i = 0; i < totalTeams; i++) {
+            int groupIndex = i / (int) Math.ceil((double) totalTeams / actualGroupCount);
+            if (groupIndex >= actualGroupCount) groupIndex = actualGroupCount - 1; // last group gets leftovers
+            groups.get(groupIndex).add(sortedTeams.get(i));
         }
-        
         return groups;
     }
     
