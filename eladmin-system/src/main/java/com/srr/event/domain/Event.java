@@ -97,6 +97,18 @@ public class Event implements Serializable {
     @ApiModelProperty(value = "Check in time", hidden = true)
     private Timestamp checkInAt;
 
+    @Column(name = "check_in_start")
+    @ApiModelProperty(value = "Check in start time")
+    private Timestamp checkInStart;
+
+    @Column(name = "check_in_end")
+    @ApiModelProperty(value = "Check in end time")
+    private Timestamp checkInEnd;
+
+    @Column(name = "allow_self_check_in")
+    @ApiModelProperty(value = "Allow self check in")
+    private Boolean allowSelfCheckIn = true;
+
     @Column(name = "group_count")
     @ApiModelProperty(value = "Number of groups")
     private Integer groupCount;
@@ -138,7 +150,7 @@ public class Event implements Serializable {
     private EventStatus status;
 
     @Column(name = "is_public")
-    private boolean isPublic;
+    private Boolean isPublic;
 
     @Column(name = "allow_wait_list")
     private boolean allowWaitList;
