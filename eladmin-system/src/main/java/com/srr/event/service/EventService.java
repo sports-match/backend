@@ -21,6 +21,7 @@ import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.PlayerService;
+import com.srr.player.service.TeamPlayerService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
@@ -61,6 +62,7 @@ public class EventService {
     private final EmailService emailService;
     private final UserRepository userRepository;
     private final PlayerService playerService;
+    private final TeamPlayerService teamPlayerService;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -273,71 +275,6 @@ public class EventService {
     }
 
     /**
-     * Merge two teams if players from different teams want to join together for the same event.
-     * Ensures both players end up in only one team and cleans up the unused team.
-     */
-    /**
-     * Merge teams if needed and return true if player is already in target team after merge.
-     */
-    private boolean ensurePlayerInTargetTeam(Long eventId, Long joiningPlayerId, Long targetTeamId) {
-        // Find the joining player's existing TeamPlayer for this event
-        TeamPlayer joiningTeamPlayer = teamPlayerRepository.findByEventId(eventId).stream()
-            .filter(tp -> tp.getPlayer().getId().equals(joiningPlayerId))
-            .findFirst().orElse(null);
-        if (joiningTeamPlayer == null) {
-            return false; // player not in any team yet
-        }
-        Team oldTeam = joiningTeamPlayer.getTeam();
-        if (oldTeam.getId().equals(targetTeamId)) {
-            return true; // already in target
-        }
-
-        // Prevent merge if target team is full
-        Team targetTeam = teamRepository.findById(targetTeamId)
-            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
-        if (targetTeam.getTeamPlayers().size() >= targetTeam.getTeamSize()) {
-            throw new BadRequestException("Target team is already full.");
-        }
-        if (targetTeam.getStatus() == TeamStatus.WITHDRAWN) {
-            throw new BadRequestException("Cannot join a withdrawn team.");
-        }
-
-        // Prevent merge if player status withdrawn
-        if (joiningTeamPlayer.getStatus() == TeamPlayerStatus.WITHDRAWN) {
-            throw new BadRequestException("Withdrawn player cannot join a team.");
-        }
-
-        // Move the player to the target team
-        joiningTeamPlayer.setTeam(targetTeam);
-        teamPlayerRepository.save(joiningTeamPlayer);
-
-        // Update team timestamp
-        targetTeam.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-
-        // Update averageScore for the team
-        double avg = targetTeam.getTeamPlayers().stream()
-            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", "DOUBLES"))
-            .filter(Optional::isPresent)
-            .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
-            .average().orElse(0.0);
-        targetTeam.setAverageScore(avg);
-
-        // If all players are checked in, set team status to CHECKED_IN
-        boolean allCheckedIn = targetTeam.getTeamPlayers().stream().allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
-        if (allCheckedIn && targetTeam.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
-            targetTeam.setStatus(com.srr.enumeration.TeamStatus.CHECKED_IN);
-        }
-
-        teamRepository.save(targetTeam);
-
-        // If old team is now empty, delete it
-        if (teamPlayerRepository.findAllByTeamId(oldTeam.getId()).isEmpty()) {
-            teamRepository.deleteById(oldTeam.getId());
-        }
-        return true;
-    }
-
-    /**
      * 
      *
      * @param joinEventDto 
@@ -367,6 +304,11 @@ public class EventService {
             throw new BadRequestException("Event is not open for joining");
         }
 
+        // Prevent duplicate registration for the same event
+        if (teamPlayerRepository.findByEventId(event.getId()).stream().anyMatch(tp -> tp.getPlayer().getId().equals(playerId))) {
+            throw new BadRequestException("Player is already registered for this event");
+        }
+
         boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
         if (event.getMaxParticipants() != null &&
                 (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
@@ -377,89 +319,53 @@ public class EventService {
             isWaitList = true;
         }
 
-        if (joinEventDto.getTeamId() != null) {
-            boolean alreadyInTeam = ensurePlayerInTargetTeam(joinEventDto.getEventId(), joinEventDto.getPlayerId(), joinEventDto.getTeamId());
-
-            if (alreadyInTeam) {
-                // Player already part of the team after merge, simply return event response.
-                EventDto responseDto = eventMapper.toDto(event);
-                responseDto.setPublicLink("https://sportrevive.com/events/" + event.getId());
-                return responseDto;
-            }
-
-            Team team = teamRepository.findById(joinEventDto.getTeamId())
-                    .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(joinEventDto.getTeamId())));
-
-            if (!team.getEvent().getId().equals(event.getId())) {
-                throw new BadRequestException("Team does not belong to this event");
-            }
-
-            if (teamPlayerRepository.existsByTeamIdAndPlayerId(team.getId(), joinEventDto.getPlayerId())) {
-                throw new BadRequestException("Player is already in this team");
-            }
-
-            if (team.getTeamPlayers().size() >= team.getTeamSize()) {
-                throw new BadRequestException("Team is already full");
-            }
-
-            TeamPlayer teamPlayer = new TeamPlayer();
-            teamPlayer.setTeam(team);
-            Player player = new Player();
-            player.setId(joinEventDto.getPlayerId());
-            teamPlayer.setPlayer(player);
-            teamPlayer.setCheckedIn(false);
-            teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
-            teamPlayer.setRegistrationTime(new Timestamp(System.currentTimeMillis()));
-            teamPlayerRepository.save(teamPlayer);
-
-            teamRepository.save(team);
-
-            if (!isWaitList) {
-                event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
-            }
+        // Remove teamId logic: always create a new team for the player
+        Team team = new Team();
+        team.setEvent(event);
+        if (event.getFormat() == Format.SINGLE) {
+            team.setName("Player " + joinEventDto.getPlayerId());
+            team.setTeamSize(1);
+        } else if (event.getFormat() == Format.DOUBLE) {
+            team.setName("New Team");
+            team.setTeamSize(2);
         } else {
-            Team team = new Team();
-            team.setEvent(event);
+            team.setName("New Team");
+            team.setTeamSize(4);
+        }
+        team.setStatus(TeamStatus.REGISTERED);
 
-            if (event.getFormat() == Format.SINGLE) {
-                team.setName("Player " + joinEventDto.getPlayerId());
-                team.setTeamSize(1);
-            } else if (event.getFormat() == Format.DOUBLE) {
-                team.setName("New Team");
-                team.setTeamSize(2);
-            } else {
-                team.setName("New Team");
-                team.setTeamSize(4);
-            }
-            team.setStatus(TeamStatus.REGISTERED);
-            Team savedTeam = teamRepository.save(team);
+        // Calculate average rating for the new team
+        double avg = 0.0;
+        if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null) {
+            avg = ratingOpt.get().getRateScore();
+        }
+        team.setAverageScore(avg);
 
-            TeamPlayer teamPlayer = new TeamPlayer();
-            teamPlayer.setTeam(savedTeam);
-            Player player = new Player();
-            player.setId(joinEventDto.getPlayerId());
-            teamPlayer.setPlayer(player);
-            teamPlayer.setCheckedIn(false);
-            teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
-            teamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
-            teamPlayerRepository.save(teamPlayer);
+        Team savedTeam = teamRepository.save(team);
 
-            if (!isWaitList) {
-                event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
-            } else {
-                WaitList waitListEntry = new WaitList();
-                waitListEntry.setEventId(event.getId());
-                Player waitingPlayer = new Player();
-                waitingPlayer.setId(joinEventDto.getPlayerId());
-                waitListEntry.setPlayerId(waitingPlayer.getId());
-                waitListRepository.save(waitListEntry);
-            }
+        TeamPlayer teamPlayer = new TeamPlayer();
+        teamPlayer.setTeam(savedTeam);
+        Player player = new Player();
+        player.setId(joinEventDto.getPlayerId());
+        teamPlayer.setPlayer(player);
+        teamPlayer.setCheckedIn(false);
+        teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
+        teamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
+        teamPlayerRepository.save(teamPlayer);
+
+        if (!isWaitList) {
+            event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
+        } else {
+            WaitList waitListEntry = new WaitList();
+            waitListEntry.setEventId(event.getId());
+            Player waitingPlayer = new Player();
+            waitingPlayer.setId(joinEventDto.getPlayerId());
+            waitListEntry.setPlayerId(waitingPlayer.getId());
+            waitListRepository.save(waitListEntry);
         }
 
-        eventRepository.save(event);
         EventDto responseDto = eventMapper.toDto(event);
-        String eventLink = "https://sportrevive.com/events/" + event.getId();
-        responseDto.setPublicLink(eventLink);
+        responseDto.setPublicLink("https://sportrevive.com/events/" + event.getId());
         return responseDto;
     }
 
@@ -487,40 +393,12 @@ public class EventService {
 
             // Get the team and update its state
             Team team = teamPlayer.getTeam();
-            boolean allWithdrawn = team.getTeamPlayers().stream().allMatch(tp -> tp.getStatus() == TeamPlayerStatus.WITHDRAWN);
-            if (allWithdrawn) {
-                team.setStatus(TeamStatus.WITHDRAWN);
-                team.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-                teamRepository.save(team);
-            } else {
-                // If not all withdrawn, update team's averageScore and checked-in status
-                double avg = team.getTeamPlayers().stream()
-                        .filter(tp -> tp.getStatus() != TeamPlayerStatus.WITHDRAWN)
-                        .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", "DOUBLES"))
-                        .filter(Optional::isPresent)
-                        .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
-                        .average().orElse(0.0);
-                team.setAverageScore(avg);
-                // Checked-in logic: only checked-in if all non-withdrawn are checked in
-                boolean allCheckedIn = team.getTeamPlayers().stream()
-                        .filter(tp -> tp.getStatus() != TeamPlayerStatus.WITHDRAWN)
-                        .allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
-                if (allCheckedIn && team.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
-                    team.setStatus(com.srr.enumeration.TeamStatus.CHECKED_IN);
-                } else if (!allCheckedIn && team.getStatus() == com.srr.enumeration.TeamStatus.CHECKED_IN) {
-                    team.setStatus(com.srr.enumeration.TeamStatus.REGISTERED);
-                }
-                team.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-                teamRepository.save(team);
-            }
 
             // Remove the player from the team
             teamPlayerRepository.delete(teamPlayer);
 
-            // If the team becomes empty after withdrawal, delete it
-            if (team.getTeamPlayers().size() == 1) { // 1 because the player is about to be removed
-                teamRepository.delete(team);
-            }
+            // Use new helper for team update
+            teamPlayerService.updateTeamStateAndStatus(team);
 
             // Only decrement if player was on main list (not waitlist)
             if (event.getCurrentParticipants() != null && event.getCurrentParticipants() > 0) {

@@ -43,8 +43,18 @@ public class TeamPlayerController {
     @PostMapping("/reassign")
     @Log("Reassign player to another team")
     @ApiOperation("Reassign player to another team")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<TeamPlayerDto> reassignPlayer(@Validated @RequestBody TeamPlayerReassignDto dto) {
         return new ResponseEntity<>(teamPlayerService.reassignPlayer(dto), HttpStatus.OK);
+    }
+
+    /**
+     * Withdraw a team from an event
+     */
+    @PostMapping("/teams/{id}/withdraw")
+    @PreAuthorize("hasAnyAuthority('Organizer', 'Admin')")
+    public ResponseEntity<Object> withdrawTeam(@PathVariable Long id) {
+        teamPlayerService.withdrawTeam(id);
+        return ResponseEntity.ok().build();
     }
 }
