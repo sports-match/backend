@@ -100,7 +100,7 @@ public class PlayerAnswerService {
             .orElseThrow(() -> new BadRequestException("Sport not found: " + sport));
         // Query questions by sportId and format
         List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, MatchFormat.valueOf(format));
-        List<Long> questionIds = questions.stream().map(Question::getId).collect(Collectors.toList());
+        List<Long> questionIds = questions.stream().map(Question::getId).toList();
         // Only consider answers for these questions
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
             .filter(ans -> questionIds.contains(ans.getQuestionId()))
@@ -201,17 +201,14 @@ public class PlayerAnswerService {
             return;
         }
         double srrd = ratingService.calculateInitialRating(answers);
-        // Apply rating to both singles and doubles
-        for (MatchFormat fmt : MatchFormat.values()) {
-            PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, fmt.name())
-                    .orElse(new PlayerSportRating());
-            rating.setPlayerId(playerId);
-            rating.setSport(sport);
-            rating.setFormat(fmt.name());
-            rating.setRateScore(srrd);
-            rating.setRateBand(null);
-            rating.setProvisional(true);
-            playerSportRatingRepository.save(rating);
-        }
+        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
+                .orElse(new PlayerSportRating());
+        rating.setPlayerId(playerId);
+        rating.setSport(sport);
+        rating.setFormat(format);
+        rating.setRateScore(srrd);
+        rating.setRateBand(null);
+        rating.setProvisional(true);
+        playerSportRatingRepository.save(rating);
     }
 }
