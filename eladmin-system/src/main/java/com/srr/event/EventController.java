@@ -3,7 +3,9 @@ package com.srr.event;
 import com.srr.enumeration.EventStatus;
 import com.srr.event.dto.*;
 import com.srr.event.service.EventService;
+import com.srr.event.service.MatchGenerationService;
 import com.srr.event.service.MatchGroupService;
+import com.srr.event.service.MatchService;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.service.TeamPlayerService;
 import io.swagger.annotations.Api;
@@ -36,6 +38,8 @@ public class EventController {
     private final EventService eventService;
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupService matchGroupService;
+    private final MatchGenerationService matchGenerationService;
+    private final MatchService matchService;
 
     @GetMapping
     @ApiOperation("Query event")
@@ -119,7 +123,7 @@ public class EventController {
         return new ResponseEntity<>(teamPlayerService.findByEventId(eventId), HttpStatus.OK);
     }
 
-    @PostMapping("{id}/generate-groups")
+    @PostMapping("/{id}/generate-groups")
     @Log("Generate match groups")
     @ApiOperation("Generate match groups based on team scores")
     @PreAuthorize("hasAuthority('Organizer')")
@@ -131,6 +135,28 @@ public class EventController {
         result.put("message", "Successfully created " + groupsCreated + " match groups based on team scores");
 
         return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/generate-matches")
+    @ApiOperation("Generate matches for an event")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<Object> generateMatches(@PathVariable Long id) {
+        matchGenerationService.generateMatchesForEvent(id);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/matches")
+    @ApiOperation("Get all matches for an event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> getMatchesByGroup(@PathVariable Long id) {
+        return new ResponseEntity<>(matchService.findMatchesByEventGrouped(id), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/{eventId}/groups/{groupId}/matches")
+    @ApiOperation("Get all matches for a specific match group in an event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> getMatchesByGroupId(@PathVariable Long eventId, @PathVariable Long groupId) {
+        return new ResponseEntity<>(matchService.findMatchesByGroupId(groupId), HttpStatus.OK);
     }
 
     @DeleteMapping
