@@ -273,6 +273,56 @@ public class EventService {
     }
 
     /**
+     * Merge two teams if players from different teams want to join together for the same event.
+     * Ensures both players end up in only one team and cleans up the unused team.
+     */
+    /**
+     * Merge teams if needed and return true if player is already in target team after merge.
+     */
+    private boolean ensurePlayerInTargetTeam(Long eventId, Long joiningPlayerId, Long targetTeamId) {
+        // Find the joining player's existing TeamPlayer for this event
+        TeamPlayer joiningTeamPlayer = teamPlayerRepository.findByEventId(eventId).stream()
+            .filter(tp -> tp.getPlayer().getId().equals(joiningPlayerId))
+            .findFirst().orElse(null);
+        if (joiningTeamPlayer == null) {
+            return false; // player not in any team yet
+        }
+        Team oldTeam = joiningTeamPlayer.getTeam();
+        if (oldTeam.getId().equals(targetTeamId)) {
+            return true; // already in target
+        }
+
+        // Prevent merge if target team is full
+        Team targetTeam = teamRepository.findById(targetTeamId)
+            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
+        if (targetTeam.getTeamPlayers().size() >= targetTeam.getTeamSize()) {
+            throw new BadRequestException("Target team is already full.");
+        }
+        if (targetTeam.getStatus() == TeamStatus.WITHDRAWN) {
+            throw new BadRequestException("Cannot join a withdrawn team.");
+        }
+
+        // Prevent merge if player status withdrawn
+        if (joiningTeamPlayer.getStatus() == TeamPlayerStatus.WITHDRAWN) {
+            throw new BadRequestException("Withdrawn player cannot join a team.");
+        }
+
+        // Move the player to the target team
+        joiningTeamPlayer.setTeam(targetTeam);
+        teamPlayerRepository.save(joiningTeamPlayer);
+
+        // Update team timestamp
+        targetTeam.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        teamRepository.save(targetTeam);
+
+        // If old team is now empty, delete it
+        if (teamPlayerRepository.findAllByTeamId(oldTeam.getId()).isEmpty()) {
+            teamRepository.deleteById(oldTeam.getId());
+        }
+        return true;
+    }
+
+    /**
      * 
      *
      * @param joinEventDto 
@@ -313,6 +363,15 @@ public class EventService {
         }
 
         if (joinEventDto.getTeamId() != null) {
+            boolean alreadyInTeam = ensurePlayerInTargetTeam(joinEventDto.getEventId(), joinEventDto.getPlayerId(), joinEventDto.getTeamId());
+
+            if (alreadyInTeam) {
+                // Player already part of the team after merge, simply return event response.
+                EventDto responseDto = eventMapper.toDto(event);
+                responseDto.setPublicLink("https://sportrevive.com/events/" + event.getId());
+                return responseDto;
+            }
+
             Team team = teamRepository.findById(joinEventDto.getTeamId())
                     .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(joinEventDto.getTeamId())));
 
@@ -339,6 +398,10 @@ public class EventService {
             teamPlayerRepository.save(teamPlayer);
 
             teamRepository.save(team);
+
+            if (!isWaitList) {
+                event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
+            }
         } else {
             Team team = new Team();
             team.setEvent(event);

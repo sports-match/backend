@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.List;
 
 @Entity
@@ -45,6 +46,9 @@ public class Team implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private com.srr.enumeration.TeamStatus status = com.srr.enumeration.TeamStatus.REGISTERED;
+
+    @Column(name = "update_time")
+    private Timestamp updateTime;
 
     @OneToMany(mappedBy = "team")
     @ApiModelProperty(value = "teamPlayers")
