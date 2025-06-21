@@ -22,8 +22,8 @@ import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
-import me.zhengjie.modules.system.repository.UserRepository;
 import me.zhengjie.service.EmailService;
+import me.zhengjie.modules.system.repository.UserRepository;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.criteria.Predicate;
+import javax.validation.Valid;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
@@ -141,7 +142,24 @@ public class EventService {
      * @return 
      */
     @Transactional
-    public EventDto create(EventDto resource) {
+    public EventDto create(@Valid EventDto resource) {
+        // Date/time validation
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        if (resource.getEventTime().before(now)) {
+            throw new BadRequestException("Event time cannot be in the past.");
+        }
+
+        if (resource.getCheckInEnd() == null) {
+            resource.setCheckInEnd(resource.getEventTime()); // Default to event start time
+        }
+        // Validate check-in window
+        if (resource.getCheckInStart() != null && resource.getCheckInEnd() != null && resource.getEventTime() != null) {
+            if (!(resource.getCheckInStart().before(resource.getCheckInEnd()) && resource.getCheckInEnd().before(resource.getEventTime()) || resource.getCheckInEnd().equals(resource.getEventTime()))) {
+                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
+            }
+        }
+
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
         var event = eventMapper.toEntity(resource);
@@ -171,7 +189,11 @@ public class EventService {
         event.setTags(processedTags);
 
         final var result = eventRepository.save(event);
-        return eventMapper.toDto(result);
+        EventDto responseDto = eventMapper.toDto(result);
+        // Generate event link with full domain
+        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
     /**
@@ -181,17 +203,45 @@ public class EventService {
      * @return 
      */
     @Transactional(rollbackFor = Exception.class)
-    public EventDto update(Event resources) {
+    public EventDto update(EventUpdateDto resources) {
         Event event = eventRepository.findById(resources.getId()).orElseGet(Event::new);
         ValidationUtil.isNull(event.getId(), "Event", "id", resources.getId());
-        // Add status validation: only allow update if not PUBLISHED, CHECK_IN, IN_PROGRESS, CLOSED, or DELETED
         if (!(event.getStatus() == EventStatus.PUBLISHED ||
                 event.getStatus() == EventStatus.CHECK_IN)) {
             throw new BadRequestException("Cannot update event with status: " + event.getStatus());
         }
-        event.copy(resources);
+        if (resources.getGroupCount() != null) {
+            event.setGroupCount(resources.getGroupCount());
+        }
+        if (resources.getIsPublic() != null) {
+            event.setIsPublic(resources.getIsPublic());
+        }
+        if (resources.getMaxParticipants() != null) {
+            event.setMaxParticipants(resources.getMaxParticipants());
+        }
+        if (resources.getAllowWaitList() != null) {
+            event.setAllowWaitList(resources.getAllowWaitList());
+        }
+        if (resources.getCheckInStart() != null) {
+            event.setCheckInStart(resources.getCheckInStart());
+        }
+        if (resources.getCheckInEnd() != null) {
+            event.setCheckInEnd(resources.getCheckInEnd());
+        } else {
+            // If end not provided but start is being updated, default to event time
+            event.setCheckInEnd(event.getEventTime());
+        }
+        // Validate check-in window if either is being updated
+        if (event.getCheckInStart() != null && event.getCheckInEnd() != null && event.getEventTime() != null) {
+            if (!(event.getCheckInStart().before(event.getCheckInEnd()) && (event.getCheckInEnd().before(event.getEventTime()) || event.getCheckInEnd().equals(event.getEventTime())))) {
+                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
+            }
+        }
         final var result = eventRepository.save(event);
-        return eventMapper.toDto(result);
+        EventDto responseDto = eventMapper.toDto(result);
+        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
     /**
@@ -212,7 +262,10 @@ public class EventService {
         }
 
         final var result = eventRepository.save(event);
-        return eventMapper.toDto(result);
+        EventDto responseDto = eventMapper.toDto(result);
+        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
     /**
@@ -234,6 +287,11 @@ public class EventService {
 
         Event event = eventRepository.findById(joinEventDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
+
+        // Block joining if event is private
+        if (Boolean.FALSE.equals(event.getIsPublic())) {
+            throw new BadRequestException("This event is private. Joining is not allowed.");
+        }
 
         if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new BadRequestException("Event is not open for joining");
@@ -312,7 +370,10 @@ public class EventService {
         }
 
         eventRepository.save(event);
-        return eventMapper.toDto(event);
+        EventDto responseDto = eventMapper.toDto(event);
+        String eventLink = "https://sportrevive.com/events/" + event.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
     /**
@@ -367,7 +428,10 @@ public class EventService {
         }
 
         Event updatedEvent = eventRepository.save(event);
-        return eventMapper.toDto(updatedEvent);
+        EventDto responseDto = eventMapper.toDto(updatedEvent);
+        String eventLink = "https://sportrevive.com/events/" + updatedEvent.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
     /**

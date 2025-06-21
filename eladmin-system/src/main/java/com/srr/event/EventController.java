@@ -1,11 +1,7 @@
 package com.srr.event;
 
 import com.srr.enumeration.EventStatus;
-import com.srr.event.domain.Event;
-import com.srr.event.dto.EventDto;
-import com.srr.event.dto.EventQueryCriteria;
-import com.srr.event.dto.JoinEventDto;
-import com.srr.event.dto.RemindDto;
+import com.srr.event.dto.*;
 import com.srr.event.service.EventService;
 import com.srr.event.service.MatchGroupService;
 import com.srr.player.dto.TeamPlayerDto;
@@ -22,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,9 +68,8 @@ public class EventController {
     @Log("Modify event")
     @ApiOperation("Modify event")
     @PreAuthorize("hasAuthority('Organizer')")
-    public ResponseEntity<Object> updateEvent(@Validated @RequestBody Event resources) {
-        final var result = eventService.update(resources);
-        return new ResponseEntity<>(result, HttpStatus.OK);
+    public ResponseEntity<EventDto> update(@Valid @RequestBody EventUpdateDto resources) {
+        return ResponseEntity.ok(eventService.update(resources));
     }
 
     @PatchMapping("/{id}/status/{status}")

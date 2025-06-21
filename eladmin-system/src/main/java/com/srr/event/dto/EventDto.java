@@ -20,6 +20,8 @@ import com.srr.enumeration.Format;
 import com.srr.player.dto.PlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
@@ -38,13 +40,16 @@ public class EventDto implements Serializable {
     @ApiModelProperty(value = "id")
     private Long id;
 
-    @ApiModelProperty(value = "名称")
+    @ApiModelProperty(value = "名称", required = true)
+    @NotBlank(message = "Event name is mandatory")
     private String name;
 
-    @ApiModelProperty(value = "描述")
+    @ApiModelProperty(value = "描述", required = true)
+    @NotBlank(message = "Event description is mandatory")
     private String description;
 
-    @ApiModelProperty(value = "SINGLE, DOUBLE")
+    @ApiModelProperty(value = "SINGLE, DOUBLE", required = true)
+    @NotNull(message = "Event format is mandatory")
     private Format format;
 
     @ApiModelProperty(value = "位置")
@@ -65,7 +70,8 @@ public class EventDto implements Serializable {
     @ApiModelProperty(value = "是否启用")
     private Boolean enabled;
 
-    @ApiModelProperty(value = "时间")
+    @ApiModelProperty(value = "时间", required = true)
+    @NotNull(message = "Event time is mandatory")
     private Timestamp eventTime;
 
     @ApiModelProperty(value = "clubId")
@@ -82,14 +88,27 @@ public class EventDto implements Serializable {
 
     private EventStatus status;
 
-    private boolean isPublic;
+    @ApiModelProperty(value = "Is event public?", required = true)
+    @NotNull(message = "isPublic is mandatory")
+    private Boolean isPublic;
 
     private boolean allowWaitList;
     
     @ApiModelProperty(value = "Check-in time")
     private Timestamp checkInAt;
     
-    @ApiModelProperty(value = "Number of groups")
+    @ApiModelProperty(value = "Check-in start time", required = true)
+    @NotNull(message = "Check-in start time is mandatory")
+    private Timestamp checkInStart;
+
+    @ApiModelProperty(value = "Check-in end time (optional, defaults to event start time)")
+    private Timestamp checkInEnd;
+
+    @ApiModelProperty(value = "Allow self check-in")
+    private Boolean allowSelfCheckIn = true;
+
+    @ApiModelProperty(value = "Number of groups", required = true)
+    @NotNull(message = "Number of groups is mandatory")
     private Integer groupCount;
 
     private String posterImage;
@@ -97,7 +116,8 @@ public class EventDto implements Serializable {
     @ApiModelProperty(value = "Current number of participants")
     private Integer currentParticipants;
     
-    @ApiModelProperty(value = "Maximum number of participants")
+    @ApiModelProperty(value = "Maximum number of participants", required = true)
+    @NotNull(message = "Max participants is mandatory")
     private Integer maxParticipants;
     
     @ApiModelProperty(value = "Co-host players")
