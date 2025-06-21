@@ -237,7 +237,7 @@ public class EventService {
         }
         // Validate check-in window if either is being updated
         if (event.getCheckInStart() != null && event.getCheckInEnd() != null && event.getEventTime() != null) {
-            if (!(event.getCheckInStart().before(event.getCheckInEnd()) && (event.getCheckInEnd().before(event.getEventTime()) || event.getCheckInEnd().equals(event.getEventTime())))) {
+            if (!(event.getCheckInStart().before(event.getCheckInEnd()) && event.getCheckInEnd().before(event.getEventTime()) || event.getCheckInEnd().equals(event.getEventTime()))) {
                 throw new BadRequestException("Check-in window must be before or at event time and start before end.");
             }
         }
@@ -321,6 +321,13 @@ public class EventService {
             .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
             .average().orElse(0.0);
         targetTeam.setAverageScore(avg);
+
+        // If all players are checked in, set team status to CHECKED_IN
+        boolean allCheckedIn = targetTeam.getTeamPlayers().stream().allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
+        if (allCheckedIn && targetTeam.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
+            targetTeam.setStatus(com.srr.enumeration.TeamStatus.CHECKED_IN);
+        }
+
         teamRepository.save(targetTeam);
 
         // If old team is now empty, delete it
@@ -478,23 +485,47 @@ public class EventService {
             teamPlayer.setStatus(TeamPlayerStatus.WITHDRAWN);
             teamPlayerRepository.save(teamPlayer);
 
-            // Check if all team players are withdrawn, then set team status
+            // Get the team and update its state
             Team team = teamPlayer.getTeam();
             boolean allWithdrawn = team.getTeamPlayers().stream().allMatch(tp -> tp.getStatus() == TeamPlayerStatus.WITHDRAWN);
             if (allWithdrawn) {
                 team.setStatus(TeamStatus.WITHDRAWN);
+                team.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                teamRepository.save(team);
+            } else {
+                // If not all withdrawn, update team's averageScore and checked-in status
+                double avg = team.getTeamPlayers().stream()
+                        .filter(tp -> tp.getStatus() != TeamPlayerStatus.WITHDRAWN)
+                        .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", "DOUBLES"))
+                        .filter(Optional::isPresent)
+                        .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
+                        .average().orElse(0.0);
+                team.setAverageScore(avg);
+                // Checked-in logic: only checked-in if all non-withdrawn are checked in
+                boolean allCheckedIn = team.getTeamPlayers().stream()
+                        .filter(tp -> tp.getStatus() != TeamPlayerStatus.WITHDRAWN)
+                        .allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
+                if (allCheckedIn && team.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
+                    team.setStatus(com.srr.enumeration.TeamStatus.CHECKED_IN);
+                } else if (!allCheckedIn && team.getStatus() == com.srr.enumeration.TeamStatus.CHECKED_IN) {
+                    team.setStatus(com.srr.enumeration.TeamStatus.REGISTERED);
+                }
+                team.setUpdateTime(new Timestamp(System.currentTimeMillis()));
                 teamRepository.save(team);
             }
 
-            TeamPlayer teamPlayer1 = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
-            teamPlayerRepository.delete(teamPlayer1);
+            // Remove the player from the team
+            teamPlayerRepository.delete(teamPlayer);
 
             // If the team becomes empty after withdrawal, delete it
             if (team.getTeamPlayers().size() == 1) { // 1 because the player is about to be removed
                 teamRepository.delete(team);
             }
 
-            event.setCurrentParticipants(event.getCurrentParticipants() - 1);
+            // Only decrement if player was on main list (not waitlist)
+            if (event.getCurrentParticipants() != null && event.getCurrentParticipants() > 0) {
+                event.setCurrentParticipants(event.getCurrentParticipants() - 1);
+            }
 
             // Promote from waitlist if applicable
             if (event.isAllowWaitList()) {
@@ -502,10 +533,8 @@ public class EventService {
                 if (!waitList.isEmpty()) {
                     WaitList topOfWaitList = waitList.get(0);
                     // This is a simplified promotion. A full implementation would create a new team/player entry.
-                    // For now, we just open up a spot.
-                    // A more complete version would call a new method like `promotePlayerFromWaitlist(topOfWaitList)`
-                    waitListRepository.delete(topOfWaitList); // Simplified: remove from waitlist
-                    event.setCurrentParticipants(event.getCurrentParticipants() + 1); // Add the promoted player
+                    waitListRepository.delete(topOfWaitList); // Remove from waitlist
+                    event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1); // Add the promoted player
                 }
             }
         } else {
