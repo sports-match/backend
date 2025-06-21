@@ -15,6 +15,7 @@
  */
 package com.srr.player.service;
 
+import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.TeamPlayerDto;
@@ -29,6 +30,7 @@ import me.zhengjie.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -73,7 +75,18 @@ public class TeamPlayerService {
         }
         
         teamPlayer.setCheckedIn(true);
+        teamPlayer.setStatus(TeamPlayerStatus.CHECKED_IN);
+        teamPlayer.setCheckInTime(new Timestamp(System.currentTimeMillis()));
         teamPlayerRepository.save(teamPlayer);
+
+        // Check if all players in the team are checked in
+        Team team = teamPlayer.getTeam();
+        boolean allCheckedIn = team.getTeamPlayers().stream().allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
+        if (allCheckedIn && team.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
+            team.setStatus(com.srr.enumeration.TeamStatus.CHECKED_IN);
+            team.setUpdateTime(new java.sql.Timestamp(System.currentTimeMillis()));
+            teamRepository.save(team);
+        }
         
         return teamPlayerMapper.toDto(teamPlayer);
     }
