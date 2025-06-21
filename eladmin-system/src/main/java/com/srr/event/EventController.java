@@ -5,6 +5,7 @@ import com.srr.event.dto.*;
 import com.srr.event.service.EventService;
 import com.srr.event.service.MatchGenerationService;
 import com.srr.event.service.MatchGroupService;
+import com.srr.event.service.MatchService;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.service.TeamPlayerService;
 import io.swagger.annotations.Api;
@@ -38,6 +39,7 @@ public class EventController {
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupService matchGroupService;
     private final MatchGenerationService matchGenerationService;
+    private final MatchService matchService;
 
     @GetMapping
     @ApiOperation("Query event")
@@ -141,6 +143,20 @@ public class EventController {
     public ResponseEntity<Object> generateMatches(@PathVariable Long id) {
         matchGenerationService.generateMatchesForEvent(id);
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/matches")
+    @ApiOperation("Get all matches for an event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> getMatchesByGroup(@PathVariable Long id) {
+        return new ResponseEntity<>(matchService.findMatchesByEventGrouped(id), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/{eventId}/groups/{groupId}/matches")
+    @ApiOperation("Get all matches for a specific match group in an event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> getMatchesByGroupId(@PathVariable Long eventId, @PathVariable Long groupId) {
+        return new ResponseEntity<>(matchService.findMatchesByGroupId(groupId), HttpStatus.OK);
     }
 
     @DeleteMapping
