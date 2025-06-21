@@ -3,6 +3,7 @@ package com.srr.event;
 import com.srr.enumeration.EventStatus;
 import com.srr.event.dto.*;
 import com.srr.event.service.EventService;
+import com.srr.event.service.MatchGenerationService;
 import com.srr.event.service.MatchGroupService;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.service.TeamPlayerService;
@@ -36,6 +37,7 @@ public class EventController {
     private final EventService eventService;
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupService matchGroupService;
+    private final MatchGenerationService matchGenerationService;
 
     @GetMapping
     @ApiOperation("Query event")
@@ -119,7 +121,7 @@ public class EventController {
         return new ResponseEntity<>(teamPlayerService.findByEventId(eventId), HttpStatus.OK);
     }
 
-    @PostMapping("{id}/generate-groups")
+    @PostMapping("/{id}/generate-groups")
     @Log("Generate match groups")
     @ApiOperation("Generate match groups based on team scores")
     @PreAuthorize("hasAuthority('Organizer')")
@@ -131,6 +133,14 @@ public class EventController {
         result.put("message", "Successfully created " + groupsCreated + " match groups based on team scores");
 
         return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/generate-matches")
+    @ApiOperation("Generate matches for an event")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<Object> generateMatches(@PathVariable Long id) {
+        matchGenerationService.generateMatchesForEvent(id);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @DeleteMapping

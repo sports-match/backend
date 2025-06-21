@@ -41,6 +41,14 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
     void deleteByMatchGroupId(@Param("matchGroupId") Long matchGroupId);
     
     /**
+     * Delete all matches associated with a given event ID by joining through the MatchGroup
+     * @param eventId ID of the event
+     */
+    @Modifying
+    @Query("DELETE FROM Match m WHERE m.matchGroup.event.id = :eventId")
+    void deleteByMatchGroupEventId(@Param("eventId") Long eventId);
+    
+    /**
      * Find all matches for a specific match group, ordered by match order
      * @param matchGroupId ID of the match group
      * @return List of ordered matches
