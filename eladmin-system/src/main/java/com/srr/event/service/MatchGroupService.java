@@ -32,7 +32,12 @@ public class MatchGroupService {
     private final MatchGroupRepository matchGroupRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    
+    /**
+     * Generate match groups for an event
+     *
+     * @param eventId the ID of the event
+     * @return the number of groups generated
+     */
     @Transactional
     public Integer generateMatchGroups(Long eventId) {
         // Find the event
@@ -88,14 +93,15 @@ public class MatchGroupService {
         List<List<Team>> teamGroups = createTeamGroups(sortedTeams, targetGroupCount);
         
         // Create match groups
-        int groupCount = 0;
-        for (List<Team> teamGroup : teamGroups) {
+        for (int i = 0; i < teamGroups.size(); i++) {
+            List<Team> teamGroup = teamGroups.get(i);
             if (!teamGroup.isEmpty()) {
-                createMatchGroup(event, teamGroup, "Group " + (++groupCount), teamGroup.size());
+                String defaultCourts = String.valueOf(i + 1); // e.g., Group 1 gets court "1"
+                createMatchGroup(event, teamGroup, "Group " + (i + 1), teamGroup.size(), defaultCourts);
             }
         }
         
-        return groupCount;
+        return teamGroups.size();
     }
     
     /**
@@ -120,22 +126,58 @@ public class MatchGroupService {
     /**
      * Create a match group from a list of teams
      */
-    private void createMatchGroup(Event event, List<Team> teams, String name, int groupTeamSize) {
+    private void createMatchGroup(Event event, List<Team> teams, String name, int groupTeamSize, String courtNumbers) {
         MatchGroup matchGroup = new MatchGroup();
         matchGroup.setName(name);
         matchGroup.setEvent(event);
         matchGroup.setGroupTeamSize(groupTeamSize);
-        
-        // Save the match group first
+        matchGroup.setCourtNumbers(courtNumbers);
         matchGroup = matchGroupRepository.save(matchGroup);
-        
-        // Update the teams with the match group
         for (Team team : teams) {
             team.setMatchGroup(matchGroup);
             teamRepository.save(team);
         }
-        
-        // Publish an event to trigger match generation
         eventPublisher.publishEvent(new MatchGroupCreatedEvent(this, matchGroup));
+    }
+
+    /**
+     * Update court numbers for a match group
+     *
+     * @param matchGroupId the ID of the match group
+     * @param courtNumbers the new court numbers
+     */
+    public void updateCourtNumbers(Long matchGroupId, String courtNumbers) {
+        MatchGroup matchGroup = matchGroupRepository.findById(matchGroupId)
+            .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", matchGroupId.toString()));
+        matchGroup.setCourtNumbers(courtNumbers);
+        matchGroupRepository.save(matchGroup);
+    }
+
+    /**
+     * Move a team from its current group to another group, with validations.
+     */
+    @Transactional
+    public void moveTeamToGroup(Long teamId, Long targetGroupId) {
+        Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
+        MatchGroup targetGroup = matchGroupRepository.findById(targetGroupId)
+            .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", targetGroupId.toString()));
+        MatchGroup currentGroup = team.getMatchGroup();
+        if (currentGroup == null) {
+            throw new BadRequestException("Team is not currently assigned to any group.");
+        }
+        if (currentGroup.getId().equals(targetGroupId)) {
+            throw new BadRequestException("Team is already in the target group.");
+        }
+        // Must be same event
+        if (!currentGroup.getEvent().getId().equals(targetGroup.getEvent().getId())) {
+            throw new BadRequestException("Target group is not in the same event as the team's current group.");
+        }
+        // Only allow checked-in, not withdrawn teams
+        if (team.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
+            throw new BadRequestException("Only checked-in teams can be moved between groups.");
+        }
+        team.setMatchGroup(targetGroup);
+        teamRepository.save(team);
     }
 }
