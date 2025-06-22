@@ -68,9 +68,6 @@ s3:
   # File size /M
   max-size: 15
 
-qiniu:
-  max-size: 15
-
 # Email verification code validity time/seconds
 code:
   expiration: 300
