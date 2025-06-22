@@ -2,6 +2,7 @@
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
+import com.srr.enumeration.Format;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.service.EventOrganizerService;
 import com.srr.player.domain.Player;
@@ -130,7 +131,7 @@ public class AuthController {
             boolean isAssessmentCompleted = false;
             String message = "Please complete your self-assessment before joining any events.";
             if (player != null) {
-                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "badminton", "doubles");
+                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "badminton", Format.DOUBLE);
                 if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
                     isAssessmentCompleted = true;
                     message = "Self-assessment completed.";

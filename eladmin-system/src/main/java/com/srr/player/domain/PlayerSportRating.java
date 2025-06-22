@@ -1,5 +1,6 @@
 package com.srr.player.domain;
 
+import com.srr.enumeration.Format;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,7 +26,8 @@ public class PlayerSportRating implements Serializable {
     private String sport;
 
     @Column(nullable = false)
-    private String format; // e.g., "singles", "doubles"
+    @Enumerated(EnumType.STRING)
+    private Format format; // e.g., "singles", "doubles"
 
     @Column
     private Double rateScore;

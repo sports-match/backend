@@ -246,7 +246,7 @@ public class EventService {
             throw new BadRequestException("Player ID is required to join event");
         }
         final var playerDto = playerService.findById(playerId);
-        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", "DOUBLES");
+        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", Format.DOUBLE);
         if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
             throw new BadRequestException("Please complete your self-assessment before joining an event.");
         }

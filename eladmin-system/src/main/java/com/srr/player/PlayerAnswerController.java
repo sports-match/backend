@@ -1,5 +1,6 @@
 package com.srr.player;
 
+import com.srr.enumeration.Format;
 import com.srr.player.dto.PlayerAnswerDto;
 import com.srr.player.dto.PlayerSelfAssessmentRequest;
 import com.srr.player.service.PlayerAnswerService;
@@ -60,7 +61,7 @@ public class PlayerAnswerController {
     public ResponseEntity<List<PlayerAnswerDto>> submitSelfAssessment(
             @Validated @RequestBody PlayerSelfAssessmentRequest request) {
         String sport = (request.getSport() == null || request.getSport().isEmpty()) ? "Badminton" : request.getSport();
-        String format = (request.getFormat() == null || request.getFormat().isEmpty()) ? "DOUBLES" : request.getFormat();
+        Format format = (request.getFormat() == null) ? Format.DOUBLE : request.getFormat();
         return new ResponseEntity<>(
                 playerAnswerService.submitSelfAssessment(request.getAnswers(), sport, format),
                 HttpStatus.CREATED);

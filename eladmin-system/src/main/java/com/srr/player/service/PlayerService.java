@@ -1,5 +1,6 @@
 package com.srr.player.service;
 
+import com.srr.enumeration.Format;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
@@ -135,7 +136,7 @@ public class PlayerService {
         }
         // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
         boolean isAssessmentCompleted = false;
-        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "Badminton", "DOUBLES");
+        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "Badminton", Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }

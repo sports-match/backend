@@ -1,5 +1,6 @@
 package com.srr.player;
 
+import com.srr.enumeration.Format;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.player.service.PlayerSportRatingService;
@@ -34,7 +35,8 @@ public class PlayerSportRatingController {
     @GetMapping("/player/{playerId}/sport/{sport}/format/{format}")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PlayerSportRatingDto> getRatingForPlayerSportFormat(@PathVariable Long playerId, @PathVariable String sport, @PathVariable String format) {
-        PlayerSportRatingDto dto = playerSportRatingService.getRatingForPlayerSportFormat(playerId, sport, format);
+        var formatEnum = Format.valueOf(format.toUpperCase());
+        PlayerSportRatingDto dto = playerSportRatingService.getRatingForPlayerSportFormat(playerId, sport, formatEnum);
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
     }
 
