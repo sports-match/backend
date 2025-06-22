@@ -60,10 +60,6 @@ public class EventController {
     @ApiOperation("Add event")
     @PreAuthorize("hasAuthority('Organizer')")
     public ResponseEntity<Object> createEvent(@Validated @RequestBody EventDto resources) {
-        // Enforce organizer-club permission
-//        if (resources.getOrganizer() != null && resources.getOrganizer().getId() != null && resources.getClubId() != null) {
-//            eventService.validateOrganizerClubPermission(resources.getOrganizer().getId(), resources.getClubId());
-//        }
         final var result = eventService.create(resources);
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
@@ -150,6 +146,13 @@ public class EventController {
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<Object> getMatchesByGroup(@PathVariable Long id) {
         return new ResponseEntity<>(matchService.findMatchesByEventGrouped(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/groups")
+    @ApiOperation("Get all matches for an event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<Object> getEventsGroup(@PathVariable Long id) {
+        return new ResponseEntity<>(eventService.findGroup(id), HttpStatus.OK);
     }
 
     @GetMapping(value = "/{eventId}/groups/{groupId}/matches")
