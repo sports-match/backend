@@ -34,6 +34,9 @@ public class MatchGroup implements Serializable {
     @Column(name = "group_team_size")
     private int groupTeamSize;
 
+    @Column(name = "court_numbers")
+    private String courtNumbers; // e.g., "1,2,3"
+
     @OneToMany(mappedBy = "matchGroup")
     private List<Team> teams = new ArrayList<>();
 }
