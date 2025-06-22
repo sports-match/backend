@@ -9,7 +9,7 @@ import javax.persistence.*;
 import java.io.Serializable;
 
 @Entity
-@Table(name = "match")
+@Table(name = "event_match")
 @Setter
 @Getter
 public class Match implements Serializable {

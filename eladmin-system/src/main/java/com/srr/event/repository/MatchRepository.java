@@ -11,47 +11,52 @@ import java.util.List;
 import java.util.Set;
 
 /**
-* @website https://eladmin.vip
-* @author Chanheng
-* @date 2025-05-25
-**/
+ * @author Chanheng
+ * @website https://eladmin.vip
+ * @date 2025-05-25
+ **/
 public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecificationExecutor<Match> {
-    
+
     /**
      * Delete all matches associated with a specific match group
+     *
      * @param matchGroupId ID of the match group
      */
     @Modifying
-    @Query("DELETE FROM Match m WHERE m.matchGroup.id = :matchGroupId")
+    @Query(value = "DELETE FROM `event_match` m WHERE m.match_group_id = :matchGroupId", nativeQuery = true)
     void deleteByMatchGroupId(@Param("matchGroupId") Long matchGroupId);
-    
+
     /**
      * Delete all matches associated with a given event ID by joining through the MatchGroup
+     *
      * @param eventId ID of the event
      */
     @Modifying
-    @Query("DELETE FROM Match m WHERE m.matchGroup.event.id = :eventId")
+    @Query(value = "DELETE FROM `event_match` where match_group_id in (select id from match_group where event_id = 1)", nativeQuery = true)
     void deleteByMatchGroupEventId(@Param("eventId") Long eventId);
-    
+
     /**
      * Find all matches for a specific match group, ordered by match order
+     *
      * @param matchGroupId ID of the match group
      * @return List of ordered matches
      */
     @Query("SELECT m FROM Match m WHERE m.matchGroup.id = :matchGroupId ORDER BY m.matchOrder ASC")
     List<Match> findByMatchGroupIdOrderByMatchOrder(@Param("matchGroupId") Long matchGroupId);
-    
+
     /**
      * Find all matches where the specified teams are either team A or team B
+     *
      * @param teamAIds Set of team IDs to match against team A
      * @param teamBIds Set of team IDs to match against team B
      * @return List of matches involving any of the specified teams
      */
     @Query("SELECT m FROM Match m WHERE m.teamA.id IN :teamAIds OR m.teamB.id IN :teamBIds ORDER BY m.matchOrder ASC")
     List<Match> findByTeamAIdInOrTeamBIdIn(@Param("teamAIds") Set<Long> teamAIds, @Param("teamBIds") Set<Long> teamBIds);
-    
+
     /**
      * Find all matches for a specific match group
+     *
      * @param matchGroupId ID of the match group
      * @return List of matches
      */
@@ -59,6 +64,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
 
     /**
      * Find all matches for a specific match group, ordered by match order
+     *
      * @param matchGroupId ID of the match group
      * @return List of matches
      */
@@ -66,6 +72,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
 
     /**
      * Find all matches for a given event ID.
+     *
      * @param eventId ID of the event.
      * @return List of matches for the event.
      */
