@@ -15,6 +15,7 @@
  */
 package com.srr.player.service;
 
+import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.enumeration.TeamStatus;
 import com.srr.player.domain.Team;
@@ -139,7 +140,7 @@ public class TeamPlayerService {
             return;
         }
         double avg = players.stream()
-            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", "DOUBLES"))
+            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", Format.DOUBLE))
             .filter(java.util.Optional::isPresent)
             .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
             .average().orElse(0.0);
@@ -226,7 +227,7 @@ public class TeamPlayerService {
 
         // Update averageScore for the team
         double avg = targetTeam.getTeamPlayers().stream()
-            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", "DOUBLES"))
+            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), "Badminton", Format.DOUBLE))
             .filter(Optional::isPresent)
             .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
             .average().orElse(0.0);
