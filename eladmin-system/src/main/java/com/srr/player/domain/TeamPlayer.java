@@ -1,5 +1,6 @@
 package com.srr.player.domain;
 
+import com.srr.enumeration.TeamPlayerStatus;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +39,7 @@ public class TeamPlayer implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private com.srr.enumeration.TeamPlayerStatus status = com.srr.enumeration.TeamPlayerStatus.REGISTERED;
+    private TeamPlayerStatus status = TeamPlayerStatus.REGISTERED;
 
     @PrePersist
     @PreUpdate

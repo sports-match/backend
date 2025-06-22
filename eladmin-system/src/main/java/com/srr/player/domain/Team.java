@@ -1,5 +1,6 @@
 package com.srr.player.domain;
 
+import com.srr.enumeration.TeamStatus;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
 import io.swagger.annotations.ApiModelProperty;
@@ -45,7 +46,7 @@ public class Team implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private com.srr.enumeration.TeamStatus status = com.srr.enumeration.TeamStatus.REGISTERED;
+    private TeamStatus status = TeamStatus.REGISTERED;
 
     @Column(name = "update_time")
     private Timestamp updateTime;
