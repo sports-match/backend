@@ -1,16 +1,12 @@
 package com.srr.event.service;
 
-import com.srr.enumeration.EventStatus;
-import com.srr.enumeration.EventTimeFilter;
-import com.srr.enumeration.Format;
-import com.srr.enumeration.TeamPlayerStatus;
-import com.srr.enumeration.TeamStatus;
-import com.srr.enumeration.VerificationStatus;
+import com.srr.enumeration.*;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
 import com.srr.event.domain.Tag;
 import com.srr.event.domain.WaitList;
 import com.srr.event.dto.*;
+import com.srr.event.mapper.MatchGroupMapper;
 import com.srr.event.repository.*;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.repository.EventOrganizerRepository;
@@ -26,8 +22,8 @@ import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
-import me.zhengjie.service.EmailService;
 import me.zhengjie.modules.system.repository.UserRepository;
+import me.zhengjie.service.EmailService;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -63,6 +59,7 @@ public class EventService {
     private final UserRepository userRepository;
     private final PlayerService playerService;
     private final TeamPlayerService teamPlayerService;
+    private final MatchGroupMapper matchGroupMapper;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -84,13 +81,6 @@ public class EventService {
         return managedTags;
     }
 
-    /**
-     * 
-     *
-     * @param criteria 
-     * @param pageable 
-     * @return 
-     */
     public PageResult<EventDto> queryAll(EventQueryCriteria criteria, Pageable pageable) {
         Page<Event> page = eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
             Predicate predicate = QueryHelp.getPredicate(root, criteria, criteriaBuilder);
@@ -107,12 +97,6 @@ public class EventService {
         return PageUtil.toPage(page.map(eventMapper::toDto));
     }
 
-    /**
-     * 
-     *
-     * @param criteria 
-     * @return 
-     */
     public List<EventDto> queryAll(EventQueryCriteria criteria) {
         return eventMapper.toDto(eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
             Predicate predicate = QueryHelp.getPredicate(root, criteria, criteriaBuilder);
@@ -128,12 +112,6 @@ public class EventService {
         }));
     }
 
-    /**
-     * 
-     *
-     * @param id 
-     * @return 
-     */
     @Transactional
     public EventDto findById(Long id) {
         Event event = eventRepository.findById(id).orElseGet(Event::new);
@@ -202,12 +180,6 @@ public class EventService {
         return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param resources 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto update(EventUpdateDto resources) {
         Event event = eventRepository.findById(resources.getId()).orElseGet(Event::new);
@@ -250,13 +222,6 @@ public class EventService {
         return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param id 
-     * @param status 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto updateStatus(Long id, EventStatus status) {
         Event event = eventRepository.findById(id)
@@ -274,12 +239,6 @@ public class EventService {
         return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param joinEventDto 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto joinEvent(JoinEventDto joinEventDto) {
         Long playerId = joinEventDto.getPlayerId();
@@ -369,12 +328,6 @@ public class EventService {
         return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param eventId 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto withdrawFromEvent(Long eventId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
@@ -432,12 +385,6 @@ public class EventService {
         return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param ids 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult deleteAll(Long[] ids) {
         List<Long> successfulDeletes = new ArrayList<>();
@@ -530,5 +477,11 @@ public class EventService {
         emailService.send(emailVo, emailConfig);
 
         return ExecutionResult.of(id, Map.of("remindersSent", recipientEmails.size()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<MatchGroupDto> findGroup(Long eventId) {
+        final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        return matchGroupMapper.toDto(matchGroup);
     }
 }

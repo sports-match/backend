@@ -1,11 +1,13 @@
 package com.srr.event.service;
 
 import com.srr.event.domain.Match;
+import com.srr.event.domain.MatchGroup;
 import com.srr.event.dto.MatchDto;
 import com.srr.event.dto.MatchGroupDto;
 import com.srr.event.dto.MatchScoreUpdateDto;
 import com.srr.event.mapper.MatchGroupMapper;
 import com.srr.event.mapper.MatchMapper;
+import com.srr.event.repository.MatchGroupRepository;
 import com.srr.event.repository.MatchRepository;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.repository.TeamPlayerRepository;
@@ -30,6 +32,7 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
     private final TeamPlayerRepository teamPlayerRepository;
+    private final MatchGroupRepository matchGroupRepository;
     private final MatchMapper matchMapper;
     private final MatchGroupMapper matchGroupMapper;
 
@@ -64,7 +67,7 @@ public class MatchService {
             isInMatch = teamPlayers.stream()
                     .filter(tp -> tp.getTeam() != null) // Filter out team players with null teams
                     .anyMatch(tp -> (teamAId.equals(tp.getTeam().getId()) ||
-                                    teamBId.equals(tp.getTeam().getId())));
+                            teamBId.equals(tp.getTeam().getId())));
         }
 
         if (!isInMatch) {
@@ -171,9 +174,9 @@ public class MatchService {
      */
     @Transactional(readOnly = true)
     public Map<MatchGroupDto, List<MatchDto>> findMatchesByEventGrouped(Long eventId) {
-        List<Match> matches = matchRepository.findByMatchGroup_Event_Id(eventId);
+        List<Match> matches = matchRepository.findByMatchGroupEventId(eventId);
 
-        Map<com.srr.event.domain.MatchGroup, List<Match>> groupedByMatchGroupEntity = matches.stream()
+        Map<MatchGroup, List<Match>> groupedByMatchGroupEntity = matches.stream()
                 .collect(Collectors.groupingBy(Match::getMatchGroup, LinkedHashMap::new, Collectors.toList()));
 
         Map<MatchGroupDto, List<MatchDto>> result = new LinkedHashMap<>();

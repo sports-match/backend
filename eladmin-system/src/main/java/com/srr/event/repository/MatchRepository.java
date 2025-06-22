@@ -75,5 +75,5 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
      * @param eventId ID of the event.
      * @return List of matches for the event.
      */
-    List<Match> findByMatchGroup_Event_Id(Long eventId);
+    List<Match> findByMatchGroupEventId(Long eventId);
 }
