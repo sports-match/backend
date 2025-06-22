@@ -12,7 +12,6 @@ import java.util.Set;
 
 /**
  * @author Chanheng
- * @website https://eladmin.vip
  * @date 2025-05-25
  **/
 public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecificationExecutor<Match> {
