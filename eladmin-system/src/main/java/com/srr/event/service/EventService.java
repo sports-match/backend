@@ -229,7 +229,7 @@ public class EventService {
 
         event.setStatus(status);
         if (status == EventStatus.CHECK_IN) {
-            event.setCheckInAt(Timestamp.from(Instant.now()));
+            event.setCheckInStart(Timestamp.from(Instant.now()));
         }
 
         final var result = eventRepository.save(event);
