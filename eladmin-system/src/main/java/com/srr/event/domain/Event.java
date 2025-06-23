@@ -93,10 +93,6 @@ public class Event implements Serializable {
     @ApiModelProperty(value = "Update time", hidden = true)
     private Timestamp updateTime;
 
-    @Column(name = "check_in_at")
-    @ApiModelProperty(value = "Check in time", hidden = true)
-    private Timestamp checkInAt;
-
     @Column(name = "check_in_start")
     @ApiModelProperty(value = "Check in start time")
     private Timestamp checkInStart;
