@@ -22,20 +22,23 @@ public class EnableCheckinScheduler {
     @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
     public void allowCheckin() {
         log.info("Checkin job");
-        // find event that need to start in an hour later
-        var events = eventRepository.findAllByStatusAndCheckInStartIsNotNullAndCheckInStartLessThan(
-                EventStatus.PUBLISHED, Timestamp.valueOf(LocalDateTime.now()));
-        if (!events.isEmpty()) {
-            events.forEach(event -> {
+        // 1. Transition from PUBLISHED to CHECK_IN when check-in window opens
+        var eventsToOpenCheckIn = eventRepository.findAllByStatusAndCheckInStartIsNotNullAndCheckInStartLessThan(
+            EventStatus.PUBLISHED, Timestamp.valueOf(LocalDateTime.now())
+        );
+        if (!eventsToOpenCheckIn.isEmpty()) {
+            eventsToOpenCheckIn.forEach(event -> {
                 event.setStatus(EventStatus.CHECK_IN);
                 eventRepository.save(event);
             });
         }
 
-        var eventsCheckInClosed = eventRepository.findAllByStatusAndCheckInEndIsNotNullAndCheckInStartLessThan(
-                EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now()));
-        if (!eventsCheckInClosed.isEmpty()) {
-            eventsCheckInClosed.forEach(event -> {
+        // 2. Transition from CHECK_IN to IN_PROGRESS when event starts
+        var eventsToStart = eventRepository.findAllByStatusAndEventTimeLessThan(
+            EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now())
+        );
+        if (!eventsToStart.isEmpty()) {
+            eventsToStart.forEach(event -> {
                 event.setStatus(EventStatus.IN_PROGRESS);
                 eventRepository.save(event);
             });
