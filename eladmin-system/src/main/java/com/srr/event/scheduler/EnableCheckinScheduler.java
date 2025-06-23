@@ -23,8 +23,8 @@ public class EnableCheckinScheduler {
     public void allowCheckin() {
         log.info("Checkin job");
         // find event that need to start in an hour later
-        var events = eventRepository.findAllByStatusAndCheckInStartIsLessThan(EventStatus.PUBLISHED,
-                Timestamp.valueOf(LocalDateTime.now()));
+        var events = eventRepository.findAllByStatusAndCheckInStartIsNotNullAndCheckInStartLessThan(
+                EventStatus.PUBLISHED, Timestamp.valueOf(LocalDateTime.now()));
         if (!events.isEmpty()) {
             events.forEach(event -> {
                 event.setStatus(EventStatus.CHECK_IN);
@@ -32,8 +32,8 @@ public class EnableCheckinScheduler {
             });
         }
 
-        var eventsCheckInClosed = eventRepository.findAllByStatusAndCheckInEndIsLessThan(EventStatus.CHECK_IN,
-                Timestamp.valueOf(LocalDateTime.now()));
+        var eventsCheckInClosed = eventRepository.findAllByStatusAndCheckInEndIsNotNullAndCheckInStartLessThan(
+                EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now()));
         if (!eventsCheckInClosed.isEmpty()) {
             eventsCheckInClosed.forEach(event -> {
                 event.setStatus(EventStatus.IN_PROGRESS);

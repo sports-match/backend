@@ -17,7 +17,7 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     List<Event> findAllByStatusAndEventTimeLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
 
-    List<Event> findAllByStatusAndCheckInStartIsLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
+    List<Event> findAllByStatusAndCheckInStartIsNotNullAndCheckInStartLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
 
-    List<Event> findAllByStatusAndCheckInEndIsLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
+    List<Event> findAllByStatusAndCheckInEndIsNotNullAndCheckInStartLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
 }
