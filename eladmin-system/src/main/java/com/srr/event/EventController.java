@@ -114,7 +114,7 @@ public class EventController {
 
     @GetMapping("/{id}/players")
     @ApiOperation("Find all team players in an event")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<List<TeamPlayerDto>> findEventPlayers(@PathVariable("id") Long eventId) {
         return new ResponseEntity<>(teamPlayerService.findByEventId(eventId), HttpStatus.OK);
     }

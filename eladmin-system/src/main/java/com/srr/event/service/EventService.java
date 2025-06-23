@@ -394,7 +394,7 @@ public class EventService {
             Optional<Event> eventOptional = eventRepository.findById(id);
             if (eventOptional.isPresent()) {
                 Event event = eventOptional.get();
-                if (event.getStatus() == EventStatus.DRAFT || event.getStatus() == EventStatus.CLOSED) {
+                if (event.getStatus() == EventStatus.PUBLISHED || event.getStatus() == EventStatus.CLOSED) {
                     List<MatchGroup> matchGroups = matchGroupRepository.findAllByEventId(id);
                     for (MatchGroup group : matchGroups) {
                         matchRepository.deleteByMatchGroupId(group.getId());
