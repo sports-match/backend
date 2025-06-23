@@ -1,13 +1,9 @@
 package com.srr.event.service;
 
 import com.srr.event.domain.Match;
-import com.srr.event.domain.MatchGroup;
 import com.srr.event.dto.MatchDto;
-import com.srr.event.dto.MatchGroupDto;
 import com.srr.event.dto.MatchScoreUpdateDto;
-import com.srr.event.mapper.MatchGroupMapper;
 import com.srr.event.mapper.MatchMapper;
-import com.srr.event.repository.MatchGroupRepository;
 import com.srr.event.repository.MatchRepository;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.repository.TeamPlayerRepository;
@@ -19,7 +15,9 @@ import me.zhengjie.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -32,9 +30,7 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
     private final TeamPlayerRepository teamPlayerRepository;
-    private final MatchGroupRepository matchGroupRepository;
     private final MatchMapper matchMapper;
-    private final MatchGroupMapper matchGroupMapper;
 
     /**
      * Updates the score of a match
@@ -170,22 +166,11 @@ public class MatchService {
      * Finds and groups matches by event
      *
      * @param eventId the event ID
-     * @return the map of match groups to matches
+     * @return the list of matches of an event
      */
     @Transactional(readOnly = true)
-    public Map<MatchGroupDto, List<MatchDto>> findMatchesByEventGrouped(Long eventId) {
+    public List<MatchDto> findMatchesByEventGrouped(Long eventId) {
         List<Match> matches = matchRepository.findByMatchGroupEventId(eventId);
-
-        Map<MatchGroup, List<Match>> groupedByMatchGroupEntity = matches.stream()
-                .collect(Collectors.groupingBy(Match::getMatchGroup, LinkedHashMap::new, Collectors.toList()));
-
-        Map<MatchGroupDto, List<MatchDto>> result = new LinkedHashMap<>();
-        groupedByMatchGroupEntity.forEach((group, matchList) -> {
-            MatchGroupDto groupDto = matchGroupMapper.toDto(group);
-            List<MatchDto> matchDtos = matchMapper.toDto(matchList);
-            result.put(groupDto, matchDtos);
-        });
-
-        return result;
+        return matchMapper.toDto(matches);
     }
 }
