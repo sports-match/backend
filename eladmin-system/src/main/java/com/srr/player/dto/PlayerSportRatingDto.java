@@ -1,5 +1,6 @@
 package com.srr.player.dto;
 
+import com.srr.enumeration.Format;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -13,7 +14,7 @@ public class PlayerSportRatingDto implements Serializable {
     private Long id;
     private Long playerId;
     private String sport;
-    private String format;
+    private Format format;
     private Double rateScore;
     private String rateBand;
     private Boolean provisional;

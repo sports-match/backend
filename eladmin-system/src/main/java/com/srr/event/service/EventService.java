@@ -1,14 +1,12 @@
 package com.srr.event.service;
 
-import com.srr.enumeration.EventStatus;
-import com.srr.enumeration.EventTimeFilter;
-import com.srr.enumeration.Format;
-import com.srr.enumeration.VerificationStatus;
+import com.srr.enumeration.*;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
 import com.srr.event.domain.Tag;
 import com.srr.event.domain.WaitList;
 import com.srr.event.dto.*;
+import com.srr.event.mapper.MatchGroupMapper;
 import com.srr.event.repository.*;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.repository.EventOrganizerRepository;
@@ -18,6 +16,8 @@ import com.srr.player.domain.TeamPlayer;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
+import com.srr.player.service.PlayerService;
+import com.srr.player.service.TeamPlayerService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.criteria.Predicate;
+import javax.validation.Valid;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
@@ -56,6 +57,9 @@ public class EventService {
     private final TagRepository tagRepository;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final PlayerService playerService;
+    private final TeamPlayerService teamPlayerService;
+    private final MatchGroupMapper matchGroupMapper;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -77,13 +81,6 @@ public class EventService {
         return managedTags;
     }
 
-    /**
-     * 
-     *
-     * @param criteria 
-     * @param pageable 
-     * @return 
-     */
     public PageResult<EventDto> queryAll(EventQueryCriteria criteria, Pageable pageable) {
         Page<Event> page = eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
             Predicate predicate = QueryHelp.getPredicate(root, criteria, criteriaBuilder);
@@ -100,12 +97,6 @@ public class EventService {
         return PageUtil.toPage(page.map(eventMapper::toDto));
     }
 
-    /**
-     * 
-     *
-     * @param criteria 
-     * @return 
-     */
     public List<EventDto> queryAll(EventQueryCriteria criteria) {
         return eventMapper.toDto(eventRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
             Predicate predicate = QueryHelp.getPredicate(root, criteria, criteriaBuilder);
@@ -121,12 +112,6 @@ public class EventService {
         }));
     }
 
-    /**
-     * 
-     *
-     * @param id 
-     * @return 
-     */
     @Transactional
     public EventDto findById(Long id) {
         Event event = eventRepository.findById(id).orElseGet(Event::new);
@@ -141,7 +126,24 @@ public class EventService {
      * @return 
      */
     @Transactional
-    public EventDto create(EventDto resource) {
+    public EventDto create(@Valid EventDto resource) {
+        // Date/time validation
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        if (resource.getEventTime().before(now)) {
+            throw new BadRequestException("Event time cannot be in the past.");
+        }
+
+        if (resource.getCheckInEnd() == null) {
+            resource.setCheckInEnd(resource.getEventTime()); // Default to event start time
+        }
+        // Validate check-in window
+        if (resource.getCheckInStart() != null && resource.getCheckInEnd() != null && resource.getEventTime() != null) {
+            if (!(resource.getCheckInStart().before(resource.getCheckInEnd()) && resource.getCheckInEnd().before(resource.getEventTime()) || resource.getCheckInEnd().equals(resource.getEventTime()))) {
+                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
+            }
+        }
+
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
         var event = eventMapper.toEntity(resource);
@@ -171,36 +173,55 @@ public class EventService {
         event.setTags(processedTags);
 
         final var result = eventRepository.save(event);
-        return eventMapper.toDto(result);
+        EventDto responseDto = eventMapper.toDto(result);
+        // Generate event link with full domain
+        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param resources 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
-    public EventDto update(Event resources) {
+    public EventDto update(EventUpdateDto resources) {
         Event event = eventRepository.findById(resources.getId()).orElseGet(Event::new);
         ValidationUtil.isNull(event.getId(), "Event", "id", resources.getId());
-        // Add status validation: only allow update if not PUBLISHED, CHECK_IN, IN_PROGRESS, CLOSED, or DELETED
         if (!(event.getStatus() == EventStatus.PUBLISHED ||
                 event.getStatus() == EventStatus.CHECK_IN)) {
             throw new BadRequestException("Cannot update event with status: " + event.getStatus());
         }
-        event.copy(resources);
+        if (resources.getGroupCount() != null) {
+            event.setGroupCount(resources.getGroupCount());
+        }
+        if (resources.getIsPublic() != null) {
+            event.setIsPublic(resources.getIsPublic());
+        }
+        if (resources.getMaxParticipants() != null) {
+            event.setMaxParticipants(resources.getMaxParticipants());
+        }
+        if (resources.getAllowWaitList() != null) {
+            event.setAllowWaitList(resources.getAllowWaitList());
+        }
+        if (resources.getCheckInStart() != null) {
+            event.setCheckInStart(resources.getCheckInStart());
+        }
+        if (resources.getCheckInEnd() != null) {
+            event.setCheckInEnd(resources.getCheckInEnd());
+        } else {
+            // If end not provided but start is being updated, default to event time
+            event.setCheckInEnd(event.getEventTime());
+        }
+        // Validate check-in window if either is being updated
+        if (event.getCheckInStart() != null && event.getCheckInEnd() != null && event.getEventTime() != null) {
+            if (!(event.getCheckInStart().before(event.getCheckInEnd()) && event.getCheckInEnd().before(event.getEventTime()) || event.getCheckInEnd().equals(event.getEventTime()))) {
+                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
+            }
+        }
         final var result = eventRepository.save(event);
-        return eventMapper.toDto(result);
+        EventDto responseDto = eventMapper.toDto(result);
+        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param id 
-     * @param status 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto updateStatus(Long id, EventStatus status) {
         Event event = eventRepository.findById(id)
@@ -212,22 +233,20 @@ public class EventService {
         }
 
         final var result = eventRepository.save(event);
-        return eventMapper.toDto(result);
+        EventDto responseDto = eventMapper.toDto(result);
+        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param joinEventDto 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto joinEvent(JoinEventDto joinEventDto) {
         Long playerId = joinEventDto.getPlayerId();
         if (playerId == null) {
             throw new BadRequestException("Player ID is required to join event");
         }
-        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", "DOUBLES");
+        final var playerDto = playerService.findById(playerId);
+        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", Format.DOUBLE);
         if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
             throw new BadRequestException("Please complete your self-assessment before joining an event.");
         }
@@ -235,8 +254,18 @@ public class EventService {
         Event event = eventRepository.findById(joinEventDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
 
+        // Block joining if event is private
+        if (Boolean.FALSE.equals(event.getIsPublic())) {
+            throw new BadRequestException("This event is private. Joining is not allowed.");
+        }
+
         if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new BadRequestException("Event is not open for joining");
+        }
+
+        // Prevent duplicate registration for the same event
+        if (teamPlayerRepository.findByEventId(event.getId()).stream().anyMatch(tp -> tp.getPlayer().getId().equals(playerId))) {
+            throw new BadRequestException("Player is already registered for this event");
         }
 
         boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
@@ -249,78 +278,56 @@ public class EventService {
             isWaitList = true;
         }
 
-        if (joinEventDto.getTeamId() != null) {
-            Team team = teamRepository.findById(joinEventDto.getTeamId())
-                    .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(joinEventDto.getTeamId())));
-
-            if (!team.getEvent().getId().equals(event.getId())) {
-                throw new BadRequestException("Team does not belong to this event");
-            }
-
-            if (teamPlayerRepository.existsByTeamIdAndPlayerId(team.getId(), joinEventDto.getPlayerId())) {
-                throw new BadRequestException("Player is already in this team");
-            }
-
-            if (team.getTeamPlayers().size() >= team.getTeamSize()) {
-                throw new BadRequestException("Team is already full");
-            }
-
-            TeamPlayer teamPlayer = new TeamPlayer();
-            teamPlayer.setTeam(team);
-            Player player = new Player();
-            player.setId(joinEventDto.getPlayerId());
-            teamPlayer.setPlayer(player);
-            teamPlayer.setCheckedIn(false);
-            teamPlayerRepository.save(teamPlayer);
-
-            teamRepository.save(team);
+        // Remove teamId logic: always create a new team for the player
+        Team team = new Team();
+        team.setEvent(event);
+        if (event.getFormat() == Format.SINGLE) {
+            team.setName("Player " + joinEventDto.getPlayerId());
+            team.setTeamSize(1);
+        } else if (event.getFormat() == Format.DOUBLE) {
+            team.setName("New Team");
+            team.setTeamSize(2);
         } else {
-            Team team = new Team();
-            team.setEvent(event);
+            team.setName("New Team");
+            team.setTeamSize(4);
+        }
+        team.setStatus(TeamStatus.REGISTERED);
 
-            if (event.getFormat() == Format.SINGLE) {
-                team.setName("Player " + joinEventDto.getPlayerId());
-                team.setTeamSize(1);
-            } else if (event.getFormat() == Format.DOUBLE) {
-                team.setName("New Team");
-                team.setTeamSize(2);
-            } else {
-                team.setName("New Team");
-                team.setTeamSize(4);
-            }
+        // Calculate average rating for the new team
+        double avg = 0.0;
+        if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null) {
+            avg = ratingOpt.get().getRateScore();
+        }
+        team.setAverageScore(avg);
 
-            Team savedTeam = teamRepository.save(team);
+        Team savedTeam = teamRepository.save(team);
 
-            TeamPlayer teamPlayer = new TeamPlayer();
-            teamPlayer.setTeam(savedTeam);
-            Player player = new Player();
-            player.setId(joinEventDto.getPlayerId());
-            teamPlayer.setPlayer(player);
-            teamPlayer.setCheckedIn(false);
-            teamPlayerRepository.save(teamPlayer);
+        TeamPlayer teamPlayer = new TeamPlayer();
+        teamPlayer.setTeam(savedTeam);
+        Player player = new Player();
+        player.setId(joinEventDto.getPlayerId());
+        teamPlayer.setPlayer(player);
+        teamPlayer.setCheckedIn(false);
+        teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
+        teamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
+        teamPlayerRepository.save(teamPlayer);
 
-            if (!isWaitList) {
-                event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
-            } else {
-                WaitList waitListEntry = new WaitList();
-                waitListEntry.setEventId(event.getId());
-                Player waitingPlayer = new Player();
-                waitingPlayer.setId(joinEventDto.getPlayerId());
-                waitListEntry.setPlayerId(waitingPlayer.getId());
-                waitListRepository.save(waitListEntry);
-            }
+        if (!isWaitList) {
+            event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
+        } else {
+            WaitList waitListEntry = new WaitList();
+            waitListEntry.setEventId(event.getId());
+            Player waitingPlayer = new Player();
+            waitingPlayer.setId(joinEventDto.getPlayerId());
+            waitListEntry.setPlayerId(waitingPlayer.getId());
+            waitListRepository.save(waitListEntry);
         }
 
-        eventRepository.save(event);
-        return eventMapper.toDto(event);
+        EventDto responseDto = eventMapper.toDto(event);
+        responseDto.setPublicLink("https://sportrevive.com/events/" + event.getId());
+        return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param eventId 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public EventDto withdrawFromEvent(Long eventId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
@@ -334,15 +341,22 @@ public class EventService {
         // Check if player is on the main list
         TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
         if (teamPlayer != null) {
+            teamPlayer.setStatus(TeamPlayerStatus.WITHDRAWN);
+            teamPlayerRepository.save(teamPlayer);
+
+            // Get the team and update its state
             Team team = teamPlayer.getTeam();
+
+            // Remove the player from the team
             teamPlayerRepository.delete(teamPlayer);
 
-            // If the team becomes empty after withdrawal, delete it
-            if (team.getTeamPlayers().size() == 1) { // 1 because the player is about to be removed
-                teamRepository.delete(team);
-            }
+            // Use new helper for team update
+            teamPlayerService.updateTeamStateAndStatus(team);
 
-            event.setCurrentParticipants(event.getCurrentParticipants() - 1);
+            // Only decrement if player was on main list (not waitlist)
+            if (event.getCurrentParticipants() != null && event.getCurrentParticipants() > 0) {
+                event.setCurrentParticipants(event.getCurrentParticipants() - 1);
+            }
 
             // Promote from waitlist if applicable
             if (event.isAllowWaitList()) {
@@ -350,10 +364,8 @@ public class EventService {
                 if (!waitList.isEmpty()) {
                     WaitList topOfWaitList = waitList.get(0);
                     // This is a simplified promotion. A full implementation would create a new team/player entry.
-                    // For now, we just open up a spot.
-                    // A more complete version would call a new method like `promotePlayerFromWaitlist(topOfWaitList)`
-                    waitListRepository.delete(topOfWaitList); // Simplified: remove from waitlist
-                    event.setCurrentParticipants(event.getCurrentParticipants() + 1); // Add the promoted player
+                    waitListRepository.delete(topOfWaitList); // Remove from waitlist
+                    event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1); // Add the promoted player
                 }
             }
         } else {
@@ -367,15 +379,12 @@ public class EventService {
         }
 
         Event updatedEvent = eventRepository.save(event);
-        return eventMapper.toDto(updatedEvent);
+        EventDto responseDto = eventMapper.toDto(updatedEvent);
+        String eventLink = "https://sportrevive.com/events/" + updatedEvent.getId();
+        responseDto.setPublicLink(eventLink);
+        return responseDto;
     }
 
-    /**
-     * 
-     *
-     * @param ids 
-     * @return 
-     */
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult deleteAll(Long[] ids) {
         List<Long> successfulDeletes = new ArrayList<>();
@@ -468,5 +477,11 @@ public class EventService {
         emailService.send(emailVo, emailConfig);
 
         return ExecutionResult.of(id, Map.of("remindersSent", recipientEmails.size()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<MatchGroupDto> findGroup(Long eventId) {
+        final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        return matchGroupMapper.toDto(matchGroup);
     }
 }

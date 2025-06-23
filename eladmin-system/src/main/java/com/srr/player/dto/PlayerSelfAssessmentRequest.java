@@ -1,5 +1,6 @@
 package com.srr.player.dto;
 
+import com.srr.enumeration.Format;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -12,5 +13,5 @@ import java.util.List;
 public class PlayerSelfAssessmentRequest implements Serializable {
     private List<PlayerAnswerDto> answers;
     private String sport; // optional, default to "Badminton"
-    private String format; // optional, default to "DOUBLES"
+    private Format format; // optional, default to "DOUBLES"
 }

@@ -1,6 +1,6 @@
 package com.srr.player.service;
 
-import com.srr.event.domain.MatchFormat;
+import com.srr.enumeration.Format;
 import com.srr.player.domain.Question;
 import com.srr.player.dto.QuestionDto;
 import com.srr.player.repository.QuestionRepository;
@@ -41,7 +41,7 @@ public class QuestionService {
     
     public List<QuestionDto> getAllForSelfAssessment() {
         Long sportId = getSportIdByName("badminton");
-        return questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, MatchFormat.DOUBLES).stream()
+        return questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, Format.DOUBLE).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }

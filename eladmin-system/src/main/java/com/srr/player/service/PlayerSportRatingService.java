@@ -1,5 +1,6 @@
 package com.srr.player.service;
 
+import com.srr.enumeration.Format;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.player.repository.PlayerSportRatingRepository;
@@ -19,7 +20,7 @@ public class PlayerSportRatingService {
             .stream().map(this::toDto).collect(Collectors.toList());
     }
 
-    public PlayerSportRatingDto getRatingForPlayerSportFormat(Long playerId, String sport, String format) {
+    public PlayerSportRatingDto getRatingForPlayerSportFormat(Long playerId, String sport, Format format) {
         return playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
             .map(this::toDto).orElse(null);
     }

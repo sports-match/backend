@@ -1,11 +1,13 @@
 package com.srr.player.domain;
 
+import com.srr.enumeration.TeamPlayerStatus;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
 
 @Getter
 @Setter
@@ -28,6 +30,16 @@ public class TeamPlayer implements Serializable {
 
     @Column(name = "is_checked_in")
     private boolean isCheckedIn;
+
+    @Column(name = "registration_time")
+    private Timestamp registrationTime;
+
+    @Column(name = "check_in_time")
+    private Timestamp checkInTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private TeamPlayerStatus status = TeamPlayerStatus.REGISTERED;
 
     @PrePersist
     @PreUpdate

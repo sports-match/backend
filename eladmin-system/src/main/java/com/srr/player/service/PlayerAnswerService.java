@@ -1,6 +1,6 @@
 package com.srr.player.service;
 
-import com.srr.event.domain.MatchFormat;
+import com.srr.enumeration.Format;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerAnswer;
 import com.srr.player.domain.PlayerSportRating;
@@ -64,11 +64,11 @@ public class PlayerAnswerService {
     
     @Transactional(rollbackFor = Exception.class)
     public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers) {
-        return submitSelfAssessment(answers, "Badminton", "DOUBLES");
+        return submitSelfAssessment(answers, "Badminton", Format.DOUBLE);
     }
 
     // Overloaded method to support sport/format from controller
-    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, String sport, String format) {
+    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, String sport, Format format) {
         if (answers.isEmpty()) {
             throw new BadRequestException("No answers provided");
         }
@@ -99,8 +99,8 @@ public class PlayerAnswerService {
             .findFirst()
             .orElseThrow(() -> new BadRequestException("Sport not found: " + sport));
         // Query questions by sportId and format
-        List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, MatchFormat.valueOf(format));
-        List<Long> questionIds = questions.stream().map(Question::getId).collect(Collectors.toList());
+        List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, format);
+        List<Long> questionIds = questions.stream().map(Question::getId).toList();
         // Only consider answers for these questions
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
             .filter(ans -> questionIds.contains(ans.getQuestionId()))
@@ -120,7 +120,7 @@ public class PlayerAnswerService {
         // Recalculate player sport rating after creating an answer
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(resources.getPlayerId());
         // Use default sport/format for single answer creation
-        updatePlayerSportRating(resources.getPlayerId(), "Badminton", "DOUBLES", answers);
+        updatePlayerSportRating(resources.getPlayerId(), "Badminton", Format.DOUBLE, answers);
         return ExecutionResult.of(saved.getId());
     }
 
@@ -139,7 +139,7 @@ public class PlayerAnswerService {
         PlayerAnswer saved = playerAnswerRepository.save(playerAnswer);
         // Recalculate player sport rating after update
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(resources.getPlayerId());
-        updatePlayerSportRating(resources.getPlayerId(), "Badminton", "DOUBLES", answers);
+        updatePlayerSportRating(resources.getPlayerId(), "Badminton", Format.DOUBLE, answers);
         return ExecutionResult.of(saved.getId());
     }
 
@@ -152,7 +152,7 @@ public class PlayerAnswerService {
         playerAnswerRepository.deleteById(id);
         // Recalculate player sport rating after delete
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(playerId);
-        updatePlayerSportRating(playerId, "Badminton", "DOUBLES", answers);
+        updatePlayerSportRating(playerId, "Badminton", Format.DOUBLE, answers);
         return ExecutionResult.ofDeleted(id);
     }
 
@@ -196,22 +196,19 @@ public class PlayerAnswerService {
     }
     
     // New updatePlayerSportRating overload to accept relevant answers
-    private void updatePlayerSportRating(Long playerId, String sport, String format, List<PlayerAnswer> answers) {
+    private void updatePlayerSportRating(Long playerId, String sport, Format format, List<PlayerAnswer> answers) {
         if (answers.isEmpty()) {
             return;
         }
         double srrd = ratingService.calculateInitialRating(answers);
-        // Apply rating to both singles and doubles
-        for (MatchFormat fmt : MatchFormat.values()) {
-            PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, fmt.name())
-                    .orElse(new PlayerSportRating());
-            rating.setPlayerId(playerId);
-            rating.setSport(sport);
-            rating.setFormat(fmt.name());
-            rating.setRateScore(srrd);
-            rating.setRateBand(null);
-            rating.setProvisional(true);
-            playerSportRatingRepository.save(rating);
-        }
+        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
+                .orElse(new PlayerSportRating());
+        rating.setPlayerId(playerId);
+        rating.setSport(sport);
+        rating.setFormat(format);
+        rating.setRateScore(srrd);
+        rating.setRateBand(null);
+        rating.setProvisional(true);
+        playerSportRatingRepository.save(rating);
     }
 }

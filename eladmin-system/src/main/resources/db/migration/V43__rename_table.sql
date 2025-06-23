@@ -1,0 +1,1 @@
+RENAME TABLE `match` TO `event_match`;

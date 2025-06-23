@@ -1,5 +1,6 @@
 package com.srr.player.domain;
 
+import com.srr.enumeration.TeamStatus;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
 import io.swagger.annotations.ApiModelProperty;
@@ -8,6 +9,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.List;
 
 @Entity
@@ -41,6 +43,13 @@ public class Team implements Serializable {
     @Column(name = "average_score")
     @ApiModelProperty(value = "Average team score based on player scores")
     private Double averageScore = 0.0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private TeamStatus status = TeamStatus.REGISTERED;
+
+    @Column(name = "update_time")
+    private Timestamp updateTime;
 
     @OneToMany(mappedBy = "team")
     @ApiModelProperty(value = "teamPlayers")

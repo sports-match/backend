@@ -2,7 +2,7 @@ package com.srr.player.domain;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.srr.event.domain.MatchFormat;
+import com.srr.enumeration.Format;
 import com.srr.sport.domain.Sport;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
@@ -50,7 +50,7 @@ public class Question implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "format", nullable = false)
     @ApiModelProperty(value = "Format (singles/doubles)")
-    private MatchFormat format;
+    private Format format;
 
     @Column(name = "order_index")
     @ApiModelProperty(value = "Display order")
