@@ -16,22 +16,27 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class EnableCheckinScheduler {
 
-    private static final Long MINUTE_TO_CHECKIN = 60L;
-
     private final EventRepository eventRepository;
 
     // Not use Quartz for now
     @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
     public void allowCheckin() {
         log.info("Checkin job");
-        Timestamp anHourLater = Timestamp.valueOf(LocalDateTime.now().plusMinutes(MINUTE_TO_CHECKIN));
         // find event that need to start in an hour later
-        var events = eventRepository.findAllByStatusAndEventTimeLessThan(EventStatus.PUBLISHED, anHourLater);
+        var events = eventRepository.findAllByStatusAndCheckInStartIsLessThan(EventStatus.PUBLISHED,
+                Timestamp.valueOf(LocalDateTime.now()));
         if (!events.isEmpty()) {
             events.forEach(event -> {
                 event.setStatus(EventStatus.CHECK_IN);
-                event.setCheckInStart(Timestamp.valueOf(LocalDateTime.now()));
-                event.setCheckInEnd(anHourLater);
+                eventRepository.save(event);
+            });
+        }
+
+        var eventsCheckInClosed = eventRepository.findAllByStatusAndCheckInEndIsLessThan(EventStatus.CHECK_IN,
+                Timestamp.valueOf(LocalDateTime.now()));
+        if (!eventsCheckInClosed.isEmpty()) {
+            eventsCheckInClosed.forEach(event -> {
+                event.setStatus(EventStatus.IN_PROGRESS);
                 eventRepository.save(event);
             });
         }

@@ -16,4 +16,8 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
     List<Event> findAllByStatusAndEventTimeLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
+
+    List<Event> findAllByStatusAndCheckInStartIsLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
+
+    List<Event> findAllByStatusAndCheckInEndIsLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
 }
