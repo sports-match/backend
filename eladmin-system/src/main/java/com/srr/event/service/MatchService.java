@@ -1,5 +1,6 @@
 package com.srr.event.service;
 
+import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.Match;
@@ -232,8 +233,11 @@ public class MatchService {
             validateBadmintonScore(m.getScoreA(), m.getScoreB());
         }
 
-        // Mark all scored matches as verified
-        matchesWithScores.forEach(m -> m.setScoreVerified(true));
+        // Mark all scored matches as verified and completed
+        matchesWithScores.forEach(m -> {
+            m.setScoreVerified(true);
+            m.setStatus(MatchStatus.COMPLETED);
+        });
         matchRepository.saveAll(matchesWithScores);
 
         // Update ratings for all matches
@@ -241,7 +245,12 @@ public class MatchService {
             updateRatingsForMatch(match);
         }
 
-        log.info("Submitted {} matches for event {}.", matchesWithScores.size(), eventId);
+        // Mark event as completed
+        Event event = eventRepository.findById(eventId).orElseThrow(() -> new BadRequestException("Event not found"));
+        event.setStatus(EventStatus.COMPLETED);
+        eventRepository.save(event);
+
+        log.info("Submitted {} matches for event {}. Event marked as COMPLETED.", matchesWithScores.size(), eventId);
         return matchesWithScores.size();
     }
 
