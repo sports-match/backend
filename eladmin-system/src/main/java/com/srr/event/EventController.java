@@ -73,7 +73,18 @@ public class EventController {
     @ApiOperation("Get event by ID")
     @AnonymousGetMapping
     public ResponseEntity<EventDto> getById(@PathVariable Long id) {
-        return new ResponseEntity<>(eventService.findById(id), HttpStatus.OK);
+        final var event = eventService.findById(id);
+        if (SecurityContextUtils.currentUserIsNotNull()) {
+            var user = SecurityContextUtils.getCurrentUser();
+            var player = playerRepository.findByUserId(user.getId());
+            if (UserType.PLAYER.equals(user.getUserType())) {
+                final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
+                if (isJoined != null && isJoined) {
+                    event.setJoined(true);
+                }
+            }
+        }
+        return new ResponseEntity<>(event, HttpStatus.OK);
     }
 
     @PostMapping
