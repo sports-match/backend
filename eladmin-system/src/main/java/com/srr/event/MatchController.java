@@ -50,7 +50,7 @@ public class MatchController {
 
     @ApiOperation("Update match score")
     @PutMapping("/{matchId}/score")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @PreAuthorize("hasAnyAuthority('Organizer', 'Player')")
     public ResponseEntity<MatchDto> updateMatchScore(
             @PathVariable Long matchId,
             @Validated @RequestBody MatchScoreUpdateDto scoreDto) {
@@ -68,5 +68,21 @@ public class MatchController {
     public ResponseEntity<MatchDto> verifyMatchScore(@PathVariable Long id) {
         Match match = matchService.verifyMatchScore(id);
         return new ResponseEntity<>(matchMapper.toDto(match), HttpStatus.OK);
+    }
+
+    @ApiOperation("Submit all match scores for event (Organizer only)")
+    @PostMapping("/submit-scores/{eventId}")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<Integer> submitAllScores(@PathVariable Long eventId) {
+        int submitted = matchService.submitAllScores(eventId);
+        return new ResponseEntity<>(submitted, HttpStatus.OK);
+    }
+
+    @ApiOperation("Withdraw match (Organizer only)")
+    @PostMapping("/withdraw-match/{matchId}")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<Void> withdrawMatch(@PathVariable Long matchId) {
+        matchService.withdrawMatch(matchId);
+        return ResponseEntity.ok().build();
     }
 }
