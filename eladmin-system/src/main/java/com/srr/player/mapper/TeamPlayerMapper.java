@@ -22,7 +22,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 
 /**
-* @website https://eladmin.vip
 * @author Chanheng
 * @date 2025-05-25
 **/
