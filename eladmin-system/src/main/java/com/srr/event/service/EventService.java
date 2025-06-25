@@ -133,9 +133,16 @@ public class EventService {
         if (resource.getEventTime().before(now)) {
             throw new BadRequestException("Event time cannot be in the past.");
         }
-
         if (resource.getCheckInEnd() == null) {
             resource.setCheckInEnd(resource.getEventTime()); // Default to event start time
+        }
+
+        if (resource.getCheckInStart() == null) {
+            resource.setCheckInStart(new Timestamp(resource.getEventTime().getTime() - 60 * 60 * 1000)); // Default to 1 hour before
+        }
+
+        if(resource.getCheckInStart() != null && resource.getCheckInStart().after(resource.getEventTime())) {
+            throw new BadRequestException("Check-in start time cannot be after event time.");
         }
         // Validate check-in window
         if (resource.getCheckInStart() != null && resource.getCheckInEnd() != null && resource.getEventTime() != null) {
@@ -394,7 +401,7 @@ public class EventService {
             Optional<Event> eventOptional = eventRepository.findById(id);
             if (eventOptional.isPresent()) {
                 Event event = eventOptional.get();
-                if (event.getStatus() == EventStatus.DRAFT || event.getStatus() == EventStatus.CLOSED) {
+                if (event.getStatus() == EventStatus.PUBLISHED || event.getStatus() == EventStatus.CLOSED) {
                     List<MatchGroup> matchGroups = matchGroupRepository.findAllByEventId(id);
                     for (MatchGroup group : matchGroups) {
                         matchRepository.deleteByMatchGroupId(group.getId());

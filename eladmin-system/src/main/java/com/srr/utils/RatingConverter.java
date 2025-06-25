@@ -2,7 +2,6 @@ package com.srr.utils;
 
 import org.springframework.stereotype.Service;
 
-@Service
 public class RatingConverter {
 
     private static final double UBR_MIN = 3500.0;

@@ -7,12 +7,16 @@ import com.srr.event.service.MatchGenerationService;
 import com.srr.event.service.MatchGroupService;
 import com.srr.event.service.MatchService;
 import com.srr.player.dto.TeamPlayerDto;
+import com.srr.player.repository.PlayerRepository;
+import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.TeamPlayerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.annotation.Log;
 import me.zhengjie.annotation.rest.AnonymousGetMapping;
+import me.zhengjie.modules.security.service.SecurityContextUtils;
+import me.zhengjie.modules.security.service.enums.UserType;
 import me.zhengjie.utils.PageResult;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -40,20 +44,47 @@ public class EventController {
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupService matchGroupService;
     private final MatchGenerationService matchGenerationService;
+    private final TeamRepository teamRepository;
+    private final PlayerRepository playerRepository;
     private final MatchService matchService;
 
     @GetMapping
     @ApiOperation("Query event")
     @AnonymousGetMapping
     public ResponseEntity<PageResult<EventDto>> queryEvent(EventQueryCriteria criteria, Pageable pageable) {
-        return new ResponseEntity<>(eventService.queryAll(criteria, pageable), HttpStatus.OK);
+        final var result = eventService.queryAll(criteria, pageable);
+        if (SecurityContextUtils.currentUserIsNotNull()) {
+            var user = SecurityContextUtils.getCurrentUser();
+            var player = playerRepository.findByUserId(user.getId());
+            if (UserType.PLAYER.equals(user.getUserType())) {
+                for (var event : result.getContent()) {
+                    final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
+                    if (isJoined != null && isJoined) {
+                        event.setJoined(true);
+                    }
+                }
+            }
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     @ApiOperation("Get event by ID")
     @AnonymousGetMapping
     public ResponseEntity<EventDto> getById(@PathVariable Long id) {
-        return new ResponseEntity<>(eventService.findById(id), HttpStatus.OK);
+        final var event = eventService.findById(id);
+        if (SecurityContextUtils.currentUserIsNotNull()) {
+            var user = SecurityContextUtils.getCurrentUser();
+            var player = playerRepository.findByUserId(user.getId());
+            if (UserType.PLAYER.equals(user.getUserType())) {
+                final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
+                if (isJoined != null && isJoined) {
+                    event.setJoined(true);
+                }
+            }
+        }
+        return new ResponseEntity<>(event, HttpStatus.OK);
     }
 
     @PostMapping
