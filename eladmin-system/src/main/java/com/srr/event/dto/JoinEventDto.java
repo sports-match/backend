@@ -21,7 +21,4 @@ public class JoinEventDto {
     private Long playerId;
     
     // Removed teamId, as team assignment is only via /reassign
-    
-    @ApiModelProperty(value = "Join as wait list")
-    private Boolean joinWaitList = false;
 }

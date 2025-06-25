@@ -13,11 +13,13 @@ import com.srr.organizer.repository.EventOrganizerRepository;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
+import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.PlayerService;
 import com.srr.player.service.TeamPlayerService;
+import com.srr.sport.repository.SportRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
@@ -60,6 +62,8 @@ public class EventService {
     private final PlayerService playerService;
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupMapper matchGroupMapper;
+    private final PlayerRepository playerRepository;
+    private final SportRepository  sportRepository;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -252,84 +256,74 @@ public class EventService {
         if (playerId == null) {
             throw new BadRequestException("Player ID is required to join event");
         }
-        final var playerDto = playerService.findById(playerId);
-        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", Format.DOUBLE);
+        final var event = eventRepository.findById(joinEventDto.getEventId())
+                .orElseThrow(() -> new BadRequestException("Event not found"));
+        final var player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new BadRequestException("Player not found"));
+        final var sport = sportRepository.findById(event.getSportId())
+                .orElseThrow(() -> new BadRequestException("Sport not found"));
+        final var format = event.getFormat();
+        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport.getName(), format);
         if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
-            throw new BadRequestException("Please complete your self-assessment before joining an event.");
+            throw new BadRequestException("Player does not have a valid rating");
         }
-
-        Event event = eventRepository.findById(joinEventDto.getEventId())
-                .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
-
-        // Block joining if event is private
+        // Handle critical checks
         if (Boolean.FALSE.equals(event.getIsPublic())) {
-            throw new BadRequestException("This event is private. Joining is not allowed.");
+            throw new BadRequestException("This event is private, Joining is not allowed.");
         }
-
         if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new BadRequestException("Event is not open for joining");
         }
-
+        final var teamPlayerOpt = teamPlayerRepository.findByEventIdAndPlayerId(event.getId(), playerId);
         // Prevent duplicate registration for the same event
         if (teamPlayerRepository.findByEventId(event.getId()).stream().anyMatch(tp -> tp.getPlayer().getId().equals(playerId))) {
             throw new BadRequestException("Player is already registered for this event");
         }
 
-        boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
-        if (event.getMaxParticipants() != null &&
-                (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
-                !isWaitList) {
-            if (!event.isAllowWaitList()) {
-                throw new BadRequestException("Event is full and does not allow waitlist");
+        if (event.getMaxParticipants() != null && event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) {
+            if (Boolean.TRUE.equals(event.getAllowWaitList())) {
+                // Add to waitlist
+                WaitList waitListEntry = new WaitList();
+                waitListEntry.setEventId(event.getId());
+                Player waitingPlayer = new Player();
+                waitingPlayer.setId(joinEventDto.getPlayerId());
+                waitListEntry.setPlayerId(waitingPlayer.getId());
+                waitListRepository.save(waitListEntry);
+            } else {
+                throw new BadRequestException("Event is full and waitlist is not allowed");
             }
-            isWaitList = true;
-        }
-
-        // Remove teamId logic: always create a new team for the player
-        Team team = new Team();
-        team.setEvent(event);
-        if (event.getFormat() == Format.SINGLE) {
-            team.setName("Player " + joinEventDto.getPlayerId());
-            team.setTeamSize(1);
-        } else if (event.getFormat() == Format.DOUBLE) {
-            team.setName("New Team");
-            team.setTeamSize(2);
         } else {
-            team.setName("New Team");
-            team.setTeamSize(4);
-        }
-        team.setStatus(TeamStatus.REGISTERED);
-
-        // Calculate average rating for the new team
-        double avg = 0.0;
-        if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null) {
-            avg = ratingOpt.get().getRateScore();
-        }
-        team.setAverageScore(avg);
-
-        Team savedTeam = teamRepository.save(team);
-
-        TeamPlayer teamPlayer = new TeamPlayer();
-        teamPlayer.setTeam(savedTeam);
-        Player player = new Player();
-        player.setId(joinEventDto.getPlayerId());
-        teamPlayer.setPlayer(player);
-        teamPlayer.setCheckedIn(false);
-        teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
-        teamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
-        teamPlayerRepository.save(teamPlayer);
-
-        if (!isWaitList) {
+            // Add as participant
+            Team team = new Team();
+            team.setEvent(event);
+            if (event.getFormat() == Format.SINGLE) {
+                team.setName("Player " + joinEventDto.getPlayerId());
+                team.setTeamSize(1);
+            } else if (event.getFormat() == Format.DOUBLE) {
+                team.setName("New Team");
+                team.setTeamSize(2);
+            } else {
+                team.setName("New Team");
+                team.setTeamSize(4);
+            }
+            team.setStatus(TeamStatus.REGISTERED);
+            double avg = 0.0;
+            if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null) {
+                avg = ratingOpt.get().getRateScore();
+            }
+            team.setAverageScore(avg);
+            Team savedTeam = teamRepository.save(team);
+            TeamPlayer teamPlayer = new TeamPlayer();
+            teamPlayer.setTeam(savedTeam);
+            Player player = new Player();
+            player.setId(joinEventDto.getPlayerId());
+            teamPlayer.setPlayer(player);
+            teamPlayer.setCheckedIn(false);
+            teamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
+            teamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
+            teamPlayerRepository.save(teamPlayer);
             event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
-        } else {
-            WaitList waitListEntry = new WaitList();
-            waitListEntry.setEventId(event.getId());
-            Player waitingPlayer = new Player();
-            waitingPlayer.setId(joinEventDto.getPlayerId());
-            waitListEntry.setPlayerId(waitingPlayer.getId());
-            waitListRepository.save(waitListEntry);
         }
-
         EventDto responseDto = eventMapper.toDto(event);
         responseDto.setPublicLink("https://sportrevive.com/events/" + event.getId());
         return responseDto;
@@ -351,13 +345,8 @@ public class EventService {
             teamPlayer.setStatus(TeamPlayerStatus.WITHDRAWN);
             teamPlayerRepository.save(teamPlayer);
 
-            // Get the team and update its state
             Team team = teamPlayer.getTeam();
-
-            // Remove the player from the team
-            teamPlayerRepository.delete(teamPlayer);
-
-            // Use new helper for team update
+            // Use service method to update team state, status, and average rating
             teamPlayerService.updateTeamStateAndStatus(team);
 
             // Only decrement if player was on main list (not waitlist)
@@ -366,17 +355,41 @@ public class EventService {
             }
 
             // Promote from waitlist if applicable
-            if (event.isAllowWaitList()) {
+            if (Boolean.TRUE.equals(event.getAllowWaitList())) {
                 List<WaitList> waitList = waitListRepository.findByEventIdOrderByCreateTimeAsc(eventId);
                 if (!waitList.isEmpty()) {
-                    WaitList topOfWaitList = waitList.get(0);
-                    // This is a simplified promotion. A full implementation would create a new team/player entry.
-                    waitListRepository.delete(topOfWaitList); // Remove from waitlist
-                    event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1); // Add the promoted player
+                    WaitList promote = waitList.get(0);
+                    // Add promoted player as participant
+                    Team newTeam = new Team();
+                    newTeam.setEvent(event);
+                    if (event.getFormat() == Format.SINGLE) {
+                        newTeam.setName("Player " + promote.getPlayerId());
+                        newTeam.setTeamSize(1);
+                    } else if (event.getFormat() == Format.DOUBLE) {
+                        newTeam.setName("New Team");
+                        newTeam.setTeamSize(2);
+                    } else {
+                        newTeam.setName("New Team");
+                        newTeam.setTeamSize(4);
+                    }
+                    newTeam.setStatus(TeamStatus.REGISTERED);
+                    newTeam.setAverageScore(0.0); // Optionally fetch rating
+                    Team savedTeam = teamRepository.save(newTeam);
+                    TeamPlayer newTeamPlayer = new TeamPlayer();
+                    newTeamPlayer.setTeam(savedTeam);
+                    Player player = new Player();
+                    player.setId(promote.getPlayerId());
+                    newTeamPlayer.setPlayer(player);
+                    newTeamPlayer.setCheckedIn(false);
+                    newTeamPlayer.setStatus(TeamPlayerStatus.REGISTERED);
+                    newTeamPlayer.setRegistrationTime(Timestamp.from(Instant.now()));
+                    teamPlayerRepository.save(newTeamPlayer);
+                    event.setCurrentParticipants((event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants()) + 1);
+                    waitListRepository.delete(promote);
                 }
             }
         } else {
-            // Check if player is on the waitlist
+            // Remove from waitlist if present
             WaitList waitListEntry = waitListRepository.findByEventIdAndPlayerId(eventId, currentUserId);
             if (waitListEntry != null) {
                 waitListRepository.delete(waitListEntry);

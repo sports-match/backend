@@ -149,7 +149,7 @@ public class Event implements Serializable {
     private Boolean isPublic;
 
     @Column(name = "allow_wait_list")
-    private boolean allowWaitList;
+    private Boolean allowWaitList;
 
     @Column(name = "current_participants")
     @ApiModelProperty(value = "Current number of participants")
