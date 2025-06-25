@@ -17,9 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Chanheng
@@ -99,25 +99,6 @@ public class PlayerService {
             playerRepository.deleteById(id);
         }
         return ExecutionResult.of(null, Map.of("count", ids.length, "ids", ids));
-    }
-
-
-    public void download(List<PlayerDto> all, HttpServletResponse response) throws IOException {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (PlayerDto player : all) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("名称", player.getName());
-            map.put("描述", player.getDescription());
-            map.put("纬度", player.getLatitude());
-            map.put("经度", player.getLongitude());
-            map.put("图片", player.getProfileImage());
-            map.put("创建时间", player.getCreateTime());
-            map.put("更新时间", player.getUpdateTime());
-            map.put("评分", ""); // Legacy field removed, optionally fetch from PlayerSportRating if needed
-            map.put(" userId", player.getUserId());
-            list.add(map);
-        }
-        FileUtil.downloadExcel(list, response);
     }
 
 
