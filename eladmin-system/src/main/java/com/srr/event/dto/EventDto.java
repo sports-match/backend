@@ -20,9 +20,9 @@ import com.srr.enumeration.Format;
 import com.srr.player.dto.PlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.HashSet;
@@ -125,4 +125,6 @@ public class EventDto implements Serializable {
     
     @ApiModelProperty(value = "Tags")
     private Set<String> tags = new HashSet<>();
+
+    private boolean isJoined;
 }
