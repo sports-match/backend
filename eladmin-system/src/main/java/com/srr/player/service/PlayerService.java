@@ -3,10 +3,7 @@ package com.srr.player.service;
 import com.srr.enumeration.Format;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerSportRating;
-import com.srr.player.dto.PlayerAssessmentStatusDto;
-import com.srr.player.dto.PlayerDto;
-import com.srr.player.dto.PlayerQueryCriteria;
-import com.srr.player.dto.PlayerSportRatingDto;
+import com.srr.player.dto.*;
 import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
@@ -72,6 +69,10 @@ public class PlayerService {
         Player player = playerRepository.findById(id).orElseGet(Player::new);
         ValidationUtil.isNull(player.getId(), "Player", "id", id);
         return playerMapper.toDto(player);
+    }
+
+    public PlayerDetailsDto findPlayerDetailsById(Long id) {
+        return null;
     }
 
 

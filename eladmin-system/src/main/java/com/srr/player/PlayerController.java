@@ -2,6 +2,7 @@ package com.srr.player;
 
 import com.srr.player.domain.Player;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
+import com.srr.player.dto.PlayerDetailsDto;
 import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.service.PlayerService;
@@ -43,11 +44,11 @@ public class PlayerController {
         return new ResponseEntity<>(playerService.findById(id), HttpStatus.OK);
     }
 
-    @GetMapping("/{id}/details")
+    @GetMapping("/{id}/dashboard")
     @ApiOperation("Get player by ID")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<PlayerDto> getByIdForHomPage(@PathVariable Long id) {
-        return new ResponseEntity<>(playerService.findById(id), HttpStatus.OK);
+    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable Long id) {
+        return new ResponseEntity<>(playerService.findPlayerDetailsById(id), HttpStatus.OK);
     }
 
     @PutMapping
