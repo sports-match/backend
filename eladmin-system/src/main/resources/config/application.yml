@@ -15,7 +15,7 @@ spring:
     check-template-location: false
   profiles:
     # Active environment. If you need quartz distributed support, change active: dev,quartz
-    active: dev
+    active: ${PROFILE:dev}
   data:
     redis:
       repositories:

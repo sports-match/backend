@@ -105,6 +105,8 @@ jobs:
         # Run deployment commands
         send "cd backend\r"
         expect "*#"
+        send "export PROFILE=prod\r"
+        expect "*#"
         send "pkill -f 'java -jar' || true\r"
         expect "*#"
         send "git checkout master\r"
