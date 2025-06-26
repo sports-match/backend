@@ -59,7 +59,7 @@ public class EventController {
             if (UserType.PLAYER.equals(user.getUserType())) {
                 for (var event : result.getContent()) {
                     final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
-                    if (isJoined != null && isJoined) {
+                    if (isJoined != null) {
                         event.setJoined(true);
                     }
                 }
@@ -79,7 +79,7 @@ public class EventController {
             var player = playerRepository.findByUserId(user.getId());
             if (UserType.PLAYER.equals(user.getUserType())) {
                 final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
-                if (isJoined != null && isJoined) {
+                if (isJoined != null) {
                     event.setJoined(true);
                 }
             }

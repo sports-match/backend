@@ -31,9 +31,9 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
      */
     List<Team> findAllByEventId(Long eventId);
 
-    @Query(value = "select true from team_player tp join team t on tp.team_id where t.event_id = :eventId and tp.player_id = :playerId",
+    @Query(value = "select 1 from team_player tp join team t on tp.team_id where t.event_id = :eventId and tp.player_id = :playerId",
             nativeQuery = true)
-    Boolean checkIsJoined(@Param("eventId") Long eventId, @Param("playerId") Long playerId);
+    Integer checkIsJoined(@Param("eventId") Long eventId, @Param("playerId") Long playerId);
 
     /**
      * Delete all teams for a specific event.
