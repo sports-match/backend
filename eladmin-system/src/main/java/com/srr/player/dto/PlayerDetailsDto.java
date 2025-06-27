@@ -2,10 +2,14 @@ package com.srr.player.dto;
 
 import com.srr.event.dto.EventDto;
 import com.srr.event.dto.MatchDto;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
+import java.util.List;
 
+@Data
+@Accessors(chain = true)
 public class PlayerDetailsDto {
     private PlayerDto player;
     private Integer singleEventRating;
@@ -17,5 +21,5 @@ public class PlayerDetailsDto {
     private LinkedHashMap<String, Integer> singleEventRatingHistory;
     private LinkedHashMap<String, Integer> doubleEventRatingHistory;
     private EventDto eventToday;
-    private LinkedList<EventDto> upcomingEvents;
+    private List<EventDto> upcomingEvents;
 }

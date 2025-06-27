@@ -1,6 +1,8 @@
 package com.srr.player.service;
 
 import com.srr.enumeration.Format;
+import com.srr.event.dto.EventMapper;
+import com.srr.event.repository.EventRepository;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.*;
@@ -8,6 +10,7 @@ import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +33,8 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerMapper playerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final EventRepository eventRepository;
+    private final EventMapper eventMapper;
 
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
@@ -72,6 +77,32 @@ public class PlayerService {
     }
 
     public PlayerDetailsDto findPlayerDetailsById(Long id) {
+        var playerDto = playerRepository.findById(id)
+                .map(playerMapper::toDto)
+                .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", id));
+
+        var eventToday = eventRepository.getPlayerEvents(id)
+                .map(eventMapper::toDto)
+                .orElse(null);
+
+        var upcomingEventToday = eventRepository.getPlayerUpcomingEvents(id)
+                .stream()
+                .map(eventMapper::toDto)
+                .toList();
+
+        var playerDetailsDto = new PlayerDetailsDto()
+                .setPlayer(playerDto)
+                .setDoubleEventRating(1000)
+                .setSingleEventRating(1000)
+                .setDoubleEventRatingChanges(100)
+                .setSingleEventRatingChanges(-100)
+                .setTotalEvent(10)
+                .setEventToday(eventToday)
+                .setLastMatch(null)
+                .setUpcomingEvents(upcomingEventToday)
+                .setSingleEventRatingHistory(null)
+                .setDoubleEventRatingHistory(null);
+
         return null;
     }
 
