@@ -90,7 +90,7 @@ public class PlayerService {
                 .map(eventMapper::toDto)
                 .toList();
 
-        var playerDetailsDto = new PlayerDetailsDto()
+        return new PlayerDetailsDto()
                 .setPlayer(playerDto)
                 .setDoubleEventRating(1000)
                 .setSingleEventRating(1000)
@@ -102,8 +102,6 @@ public class PlayerService {
                 .setUpcomingEvents(upcomingEventToday)
                 .setSingleEventRatingHistory(null)
                 .setDoubleEventRatingHistory(null);
-
-        return null;
     }
 
 
