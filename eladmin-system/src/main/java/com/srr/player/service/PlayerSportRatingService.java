@@ -21,7 +21,7 @@ public class PlayerSportRatingService {
     }
 
     public PlayerSportRatingDto getRatingForPlayerSportFormat(Long playerId, String sport, Format format) {
-        return playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
+        return playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(playerId, sport, format)
             .map(this::toDto).orElse(null);
     }
 

@@ -131,7 +131,7 @@ public class AuthController {
             boolean isAssessmentCompleted = false;
             String message = "Please complete your self-assessment before joining any events.";
             if (player != null) {
-                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "badminton", Format.DOUBLE);
+                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(player.getId(), "badminton", Format.DOUBLE);
                 if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
                     isAssessmentCompleted = true;
                     message = "Self-assessment completed.";

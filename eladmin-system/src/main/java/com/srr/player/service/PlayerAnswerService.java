@@ -201,7 +201,7 @@ public class PlayerAnswerService {
             return;
         }
         double srrd = ratingService.calculateInitialRating(answers);
-        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
+        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(playerId, sport, format)
                 .orElse(new PlayerSportRating());
         rating.setPlayerId(playerId);
         rating.setSport(sport);

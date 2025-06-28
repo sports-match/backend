@@ -136,7 +136,7 @@ public class PlayerService {
         }
         // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
         boolean isAssessmentCompleted = false;
-        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "Badminton", Format.DOUBLE);
+        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(player.getId(), "Badminton", Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }

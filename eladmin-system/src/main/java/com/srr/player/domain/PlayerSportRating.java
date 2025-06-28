@@ -1,6 +1,7 @@
 package com.srr.player.domain;
 
 import com.srr.enumeration.Format;
+import com.srr.sport.domain.Sport;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -22,8 +23,9 @@ public class PlayerSportRating implements Serializable {
     @Column(nullable = false)
     private Long playerId;
 
-    @Column(nullable = false)
-    private String sport;
+    @JoinColumn
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Sport sport;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

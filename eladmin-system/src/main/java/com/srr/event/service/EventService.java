@@ -252,8 +252,7 @@ public class EventService {
         if (playerId == null) {
             throw new BadRequestException("Player ID is required to join event");
         }
-        final var playerDto = playerService.findById(playerId);
-        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", Format.DOUBLE);
+        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(playerId, "Badminton", Format.DOUBLE);
         if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
             throw new BadRequestException("Please complete your self-assessment before joining an event.");
         }
@@ -302,7 +301,7 @@ public class EventService {
 
         // Calculate average rating for the new team
         double avg = 0.0;
-        if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null) {
+        if (ratingOpt.get().getRateScore() != null) {
             avg = ratingOpt.get().getRateScore();
         }
         team.setAverageScore(avg);

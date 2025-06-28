@@ -276,11 +276,11 @@ public class MatchService {
         if (format == Format.DOUBLE) {
             if (teamAPlayers.size() == 2 && teamBPlayers.size() == 2) {
                 List<PlayerSportRating> teamARatings = teamAPlayers.stream()
-                        .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), sport, Format.DOUBLE).orElse(null))
+                        .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(tp.getPlayer().getId(), sport, Format.DOUBLE).orElse(null))
                         .filter(r -> r != null)
                         .toList();
                 List<PlayerSportRating> teamBRatings = teamBPlayers.stream()
-                        .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportAndFormat(tp.getPlayer().getId(), sport, Format.DOUBLE).orElse(null))
+                        .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(tp.getPlayer().getId(), sport, Format.DOUBLE).orElse(null))
                         .filter(r -> r != null)
                         .toList();
                 if (teamARatings.size() == 2 && teamBRatings.size() == 2) {
@@ -297,8 +297,8 @@ public class MatchService {
             }
         } else if (format == Format.SINGLE) {
             if (teamAPlayers.size() == 1 && teamBPlayers.size() == 1) {
-                PlayerSportRating ratingA = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(teamAPlayers.get(0).getPlayer().getId(), sport, Format.SINGLE).orElse(null);
-                PlayerSportRating ratingB = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(teamBPlayers.get(0).getPlayer().getId(), sport, Format.SINGLE).orElse(null);
+                PlayerSportRating ratingA = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(teamAPlayers.get(0).getPlayer().getId(), sport, Format.SINGLE).orElse(null);
+                PlayerSportRating ratingB = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(teamBPlayers.get(0).getPlayer().getId(), sport, Format.SINGLE).orElse(null);
                 if (ratingA != null && ratingB != null) {
                     double oldA = ratingA.getRateScore();
                     double oldB = ratingB.getRateScore();
