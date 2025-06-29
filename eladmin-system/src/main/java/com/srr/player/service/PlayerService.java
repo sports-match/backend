@@ -2,13 +2,17 @@ package com.srr.player.service;
 
 import com.srr.enumeration.Format;
 import com.srr.event.dto.EventMapper;
+import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.EventRepository;
+import com.srr.event.repository.MatchRepository;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.*;
 import com.srr.player.mapper.PlayerMapper;
+import com.srr.player.mapper.RatingHistoryMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.player.repository.RatingHistoryRepository;
 import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.EntityNotFoundException;
@@ -34,9 +38,13 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerMapper playerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final RatingHistoryRepository ratingHistoryRepository;
+    private final MatchRepository matchRepository;
     private final SportService sportService;
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
+    private final MatchMapper matchMapper;
+    private final RatingHistoryMapper ratingHistoryMapper;
 
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
@@ -83,27 +91,52 @@ public class PlayerService {
                 .map(playerMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", id));
 
-        var eventToday = eventRepository.getPlayerEvents(id)
+        var eventToday = eventRepository.getPlayerEventToday(id)
                 .map(eventMapper::toDto)
                 .orElse(null);
 
-        var upcomingEventToday = eventRepository.getPlayerUpcomingEvents(id)
+        var upcomingEvent = eventRepository.getPlayerUpcomingEvents(id)
                 .stream()
                 .map(eventMapper::toDto)
                 .toList();
 
+        final var badminton = sportService.getBadminton();
+
+        double singleRating = 0;
+        double singleRatingChanges = 0;
+        double doubleRating = 0;
+        double doubleRatingChanges = 0;
+
+        var singleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
+
+        if (singleRatingsHistory != null) {
+            singleRating = singleRatingsHistory.get(0).getRateScore();
+            singleRatingChanges = singleRatingsHistory.get(0).getChanges();
+        }
+
+        var doubleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
+        if (doubleRatingsHistory != null) {
+            doubleRating = doubleRatingsHistory.get(0).getRateScore();
+            doubleRatingChanges = doubleRatingsHistory.get(0).getChanges();
+        }
+
+        var playerEvents = eventRepository.getPlayerCompletedEvents(id);
+        var allEventsJoined = playerEvents == null ? 0 : playerEvents.size();
+
+        var lastMatch  = matchRepository.getByPlayerId(id);
+
         return new PlayerDetailsDto()
                 .setPlayer(playerDto)
-                .setDoubleEventRating(1000)
-                .setSingleEventRating(1000)
-                .setDoubleEventRatingChanges(100)
-                .setSingleEventRatingChanges(-100)
-                .setTotalEvent(10)
+                .setSingleEventRating(singleRating)
+                .setSingleEventRatingChanges(singleRatingChanges)
+                .setDoubleEventRating(doubleRating)
+                .setDoubleEventRatingChanges(doubleRatingChanges)
+                .setTotalEvent(allEventsJoined)
                 .setEventToday(eventToday)
-                .setLastMatch(null)
-                .setUpcomingEvents(upcomingEventToday)
-                .setSingleEventRatingHistory(null)
-                .setDoubleEventRatingHistory(null);
+                .setLastMatch(matchMapper.toDto(lastMatch))
+                .setUpcomingEvents(upcomingEvent)
+                .setSingleEventRatingHistory(ratingHistoryMapper.toDto(singleRatingsHistory))
+                .setDoubleEventRatingHistory(ratingHistoryMapper.toDto(doubleRatingsHistory));
     }
 
 

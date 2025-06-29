@@ -13,4 +13,8 @@ public interface PlayerSportRatingRepository extends JpaRepository<PlayerSportRa
     Optional<PlayerSportRating> findByPlayerIdAndSportIdAndFormat(Long playerId, Long sportId, Format format);
 
     List<PlayerSportRating> findByPlayerId(Long playerId);
+
+    List<PlayerSportRating> findTop2ByPlayerIdAndFormatAndSportIdOrderByCreateTimeDesc(Long playerId, Format format, Long sportId);
+
+    List<PlayerSportRating> findAllByPlayerIdAndFormatAndSportIdOrderByCreateTimeDesc(Long playerId, Format format, Long sportId);
 }

@@ -22,14 +22,19 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     List<Event> findAllByStatusAndCheckInStartIsNotNullAndCheckInStartLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
 
-    List<Event> findAllByStatusAndCheckInEndIsNotNullAndCheckInStartLessThan(EventStatus status, Timestamp eventTimeIsLessThan);
-
     @Query(value = """
             select * from event e join team t on e.id = t.event_id
                          join team_player tp on t.id = tp.team_id and tp.player_id = :playerId 
                                                                 and date(e.event_time) = CURDATE() order by e.id desc limit 1
             """, nativeQuery = true)
-    Optional<Event> getPlayerEvents(Long playerId);
+    Optional<Event> getPlayerEventToday(Long playerId);
+
+    @Query(value = """
+            select * from event e join team t on e.id = t.event_id
+                         join team_player tp on t.id = tp.team_id and tp.player_id = :playerId 
+                                 and e.status = 'COMPLETED' order by e.id desc
+            """, nativeQuery = true)
+    List<Event> getPlayerCompletedEvents(Long playerId);
 
     @Query(value = """
             select * from event e join team t on e.id = t.event_id

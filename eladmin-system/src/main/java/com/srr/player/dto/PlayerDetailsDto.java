@@ -5,21 +5,20 @@ import com.srr.event.dto.MatchDto;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 
 @Data
 @Accessors(chain = true)
 public class PlayerDetailsDto {
     private PlayerDto player;
-    private Integer singleEventRating;
-    private Integer DoubleEventRating;
-    private Integer singleEventRatingChanges;
-    private Integer DoubleEventRatingChanges;
+    private Double singleEventRating;
+    private Double DoubleEventRating;
+    private Double singleEventRatingChanges;
+    private Double DoubleEventRatingChanges;
     private Integer totalEvent;
     private MatchDto lastMatch;
-    private LinkedHashMap<String, Integer> singleEventRatingHistory;
-    private LinkedHashMap<String, Integer> doubleEventRatingHistory;
+    private List<RatingHistoryDto> singleEventRatingHistory;
+    private List<RatingHistoryDto> doubleEventRatingHistory;
     private EventDto eventToday;
     private List<EventDto> upcomingEvents;
 }
