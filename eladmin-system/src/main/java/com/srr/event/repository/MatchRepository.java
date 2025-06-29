@@ -59,8 +59,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
 
     /**
      * Find all matches for a specific match group
-     *
-     * @param matchGroupId ID of the match group
+     * @param matchGroupId The match group ID
      * @return List of matches
      */
     List<Match> findAllByMatchGroupId(Long matchGroupId);

@@ -7,6 +7,7 @@ import com.srr.event.domain.Tag;
 import com.srr.event.domain.WaitList;
 import com.srr.event.dto.*;
 import com.srr.event.mapper.MatchGroupMapper;
+import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.*;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.repository.EventOrganizerRepository;
@@ -60,6 +61,7 @@ public class EventService {
     private final PlayerService playerService;
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupMapper matchGroupMapper;
+    private final MatchMapper matchMapper;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -488,5 +490,25 @@ public class EventService {
     public List<MatchGroupDto> findGroup(Long eventId) {
         final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
         return matchGroupMapper.toDto(matchGroup);
+    }
+
+    /**
+     * Get event results: groups and their matches for a given event
+     */
+    public List<MatchGroupDto> getEventResults(Long eventId) {
+        var groups = matchGroupRepository.findAllByEventId(eventId);
+        return groups.stream().map(group -> {
+            var groupDto = matchGroupMapper.toDto(group);
+            var matches = matchRepository.findAllByMatchGroupId(group.getId())
+                .stream()
+                .map(match -> {
+                    var dto = matchMapper.toDto(match);
+                    dto.setMatchGroup(null); // Prevent circular reference in JSON
+                    return dto;
+                })
+                .toList();
+            groupDto.setMatches(matches);
+            return groupDto;
+        }).toList();
     }
 }
