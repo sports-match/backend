@@ -1,26 +1,30 @@
 package com.srr.player.service;
 
 import com.srr.enumeration.Format;
+import com.srr.event.dto.EventMapper;
+import com.srr.event.mapper.MatchMapper;
+import com.srr.event.repository.EventRepository;
+import com.srr.event.repository.MatchRepository;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerSportRating;
-import com.srr.player.dto.PlayerAssessmentStatusDto;
-import com.srr.player.dto.PlayerDto;
-import com.srr.player.dto.PlayerQueryCriteria;
-import com.srr.player.dto.PlayerSportRatingDto;
+import com.srr.player.dto.*;
 import com.srr.player.mapper.PlayerMapper;
+import com.srr.player.mapper.RatingHistoryMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.player.repository.RatingHistoryRepository;
 import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Chanheng
@@ -34,7 +38,13 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerMapper playerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final RatingHistoryRepository ratingHistoryRepository;
+    private final MatchRepository matchRepository;
     private final SportService sportService;
+    private final EventRepository eventRepository;
+    private final EventMapper eventMapper;
+    private final MatchMapper matchMapper;
+    private final RatingHistoryMapper ratingHistoryMapper;
 
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
@@ -76,6 +86,59 @@ public class PlayerService {
         return playerMapper.toDto(player);
     }
 
+    public PlayerDetailsDto findPlayerDetailsById(Long id) {
+        var playerDto = playerRepository.findById(id)
+                .map(playerMapper::toDto)
+                .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", id));
+
+        var eventToday = eventRepository.getPlayerEventToday(id)
+                .map(eventMapper::toDto)
+                .orElse(null);
+
+        var upcomingEvent = eventRepository.getPlayerUpcomingEvents(id)
+                .stream()
+                .map(eventMapper::toDto)
+                .toList();
+
+        final var badminton = sportService.getBadminton();
+
+        double singleRating = 0;
+        double singleRatingChanges = 0;
+        double doubleRating = 0;
+        double doubleRatingChanges = 0;
+
+        var singleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
+
+        if (singleRatingsHistory != null) {
+            singleRating = singleRatingsHistory.get(0).getRateScore();
+            singleRatingChanges = singleRatingsHistory.get(0).getChanges();
+        }
+
+        var doubleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
+        if (doubleRatingsHistory != null) {
+            doubleRating = doubleRatingsHistory.get(0).getRateScore();
+            doubleRatingChanges = doubleRatingsHistory.get(0).getChanges();
+        }
+
+        var playerEvents = eventRepository.getPlayerCompletedEvents(id);
+        var allEventsJoined = playerEvents == null ? 0 : playerEvents.size();
+
+        var lastMatch  = matchRepository.getByPlayerId(id);
+
+        return new PlayerDetailsDto()
+                .setPlayer(playerDto)
+                .setSingleEventRating(singleRating)
+                .setSingleEventRatingChanges(singleRatingChanges)
+                .setDoubleEventRating(doubleRating)
+                .setDoubleEventRatingChanges(doubleRatingChanges)
+                .setTotalEvent(allEventsJoined)
+                .setEventToday(eventToday)
+                .setLastMatch(matchMapper.toDto(lastMatch))
+                .setUpcomingEvents(upcomingEvent)
+                .setSingleEventRatingHistory(ratingHistoryMapper.toDto(singleRatingsHistory))
+                .setDoubleEventRatingHistory(ratingHistoryMapper.toDto(doubleRatingsHistory));
+    }
+
 
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult create(Player resources) {
@@ -101,25 +164,6 @@ public class PlayerService {
             playerRepository.deleteById(id);
         }
         return ExecutionResult.of(null, Map.of("count", ids.length, "ids", ids));
-    }
-
-
-    public void download(List<PlayerDto> all, HttpServletResponse response) throws IOException {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (PlayerDto player : all) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("名称", player.getName());
-            map.put("描述", player.getDescription());
-            map.put("纬度", player.getLatitude());
-            map.put("经度", player.getLongitude());
-            map.put("图片", player.getProfileImage());
-            map.put("创建时间", player.getCreateTime());
-            map.put("更新时间", player.getUpdateTime());
-            map.put("评分", ""); // Legacy field removed, optionally fetch from PlayerSportRating if needed
-            map.put(" userId", player.getUserId());
-            list.add(map);
-        }
-        FileUtil.downloadExcel(list, response);
     }
 
 
