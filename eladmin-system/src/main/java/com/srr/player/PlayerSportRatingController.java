@@ -44,7 +44,7 @@ public class PlayerSportRatingController {
         PlayerSportRatingDto dto = new PlayerSportRatingDto();
         dto.setId(entity.getId());
         dto.setPlayerId(entity.getPlayerId());
-        dto.setSport(entity.getSport());
+        dto.setSportId(entity.getSportId());
         dto.setFormat(entity.getFormat());
         dto.setRateScore(entity.getRateScore());
         dto.setRateBand(entity.getRateBand());

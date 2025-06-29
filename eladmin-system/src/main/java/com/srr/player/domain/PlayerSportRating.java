@@ -22,8 +22,8 @@ public class PlayerSportRating implements Serializable {
     @Column(nullable = false)
     private Long playerId;
 
-    @Column(nullable = false)
-    private String sport;
+    @Column(name = "sport_id")
+    private Long sportId;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

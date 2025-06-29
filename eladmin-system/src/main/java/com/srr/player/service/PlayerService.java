@@ -16,6 +16,7 @@ import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
+import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
@@ -42,6 +43,7 @@ public class PlayerService {
     private final MatchService matchService;
     private final TeamPlayerRepository teamPlayerRepository;
     private final TeamRepository teamRepository;
+    private final SportService sportService;
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
         Page<Player> page = playerRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
@@ -54,7 +56,7 @@ public class PlayerService {
                         PlayerSportRatingDto dtoRating = new PlayerSportRatingDto();
                         dtoRating.setId(rating.getId());
                         dtoRating.setPlayerId(rating.getPlayerId());
-                        dtoRating.setSport(rating.getSport());
+                        dtoRating.setSportId(rating.getSportId());
                         dtoRating.setFormat(rating.getFormat());
                         dtoRating.setRateScore(rating.getRateScore());
                         dtoRating.setRateBand(rating.getRateBand());
@@ -126,7 +128,8 @@ public class PlayerService {
         return playerRepository.findByUserId(userId);
     }
 
-    public PlayerAssessmentStatusDto checkAssessmentStatus() {
+
+    public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId) {
         // Get current user ID
         Long currentUserId = SecurityUtils.getCurrentUserId();
         // Find the player associated with the current user
@@ -136,7 +139,7 @@ public class PlayerService {
         }
         // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
         boolean isAssessmentCompleted = false;
-        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "Badminton", Format.DOUBLE);
+        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), sportId, Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }
