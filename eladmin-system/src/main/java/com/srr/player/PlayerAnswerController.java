@@ -60,10 +60,9 @@ public class PlayerAnswerController {
     @PreAuthorize("hasAuthority('Player')")
     public ResponseEntity<List<PlayerAnswerDto>> submitSelfAssessment(
             @Validated @RequestBody PlayerSelfAssessmentRequest request) {
-        String sport = (request.getSport() == null || request.getSport().isEmpty()) ? "Badminton" : request.getSport();
         Format format = (request.getFormat() == null) ? Format.DOUBLE : request.getFormat();
         return new ResponseEntity<>(
-                playerAnswerService.submitSelfAssessment(request.getAnswers(), sport, format),
+                playerAnswerService.submitSelfAssessment(request.getAnswers(), request.getSportId(), format),
                 HttpStatus.CREATED);
     }
     
