@@ -18,6 +18,7 @@ package com.srr.player;
 import com.srr.player.domain.Player;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
 import com.srr.player.dto.PlayerDto;
+import com.srr.player.dto.PlayerDoublesStatsDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.service.PlayerService;
 import io.swagger.annotations.Api;
@@ -31,6 +32,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
 * @author Chanheng
@@ -73,5 +76,13 @@ public class PlayerController {
     public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus() {
         PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus();
         return new ResponseEntity<>(status, HttpStatus.OK);
+    }
+
+    @GetMapping("/doubles-stats")
+    @ApiOperation("Get all players' doubles stats (ranking, games played, record) with filter and pagination")
+    @PreAuthorize("hasAnyAuthority('Organizer','Player')")
+    public ResponseEntity<PageResult<PlayerDoublesStatsDto>> getAllPlayersDoublesStats(
+            PlayerQueryCriteria criteria, Pageable pageable) {
+        return new ResponseEntity<>(playerService.getAllPlayersDoublesStats(criteria, pageable), HttpStatus.OK);
     }
 }

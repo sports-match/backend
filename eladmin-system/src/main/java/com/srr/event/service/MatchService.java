@@ -328,4 +328,10 @@ public class MatchService {
         matchRepository.save(match);
         log.info("Match {} marked as WITHDRAWN", matchId);
     }
+
+    public List<Match> findAllMatches() { return matchRepository.findAll(); }
+
+    public List<Match> findMatchesByEventId(Long eventId) {
+        return matchRepository.findByMatchGroupEventId(eventId);
+    }
 }

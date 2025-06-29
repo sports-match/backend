@@ -1,15 +1,21 @@
 package com.srr.player.service;
 
 import com.srr.enumeration.Format;
+import com.srr.event.domain.Match;
+import com.srr.event.service.MatchService;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.PlayerSportRating;
+import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
 import com.srr.player.dto.PlayerDto;
+import com.srr.player.dto.PlayerDoublesStatsDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.player.repository.TeamPlayerRepository;
+import com.srr.player.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
@@ -33,7 +39,9 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerMapper playerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
-
+    private final MatchService matchService;
+    private final TeamPlayerRepository teamPlayerRepository;
+    private final TeamRepository teamRepository;
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
         Page<Player> page = playerRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
@@ -61,11 +69,9 @@ public class PlayerService {
         return PageUtil.toPage(dtoPage);
     }
 
-
     public List<PlayerDto> queryAll(PlayerQueryCriteria criteria) {
         return playerMapper.toDto(playerRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder)));
     }
-
 
     @Transactional
     public PlayerDto findById(Long id) {
@@ -74,14 +80,12 @@ public class PlayerService {
         return playerMapper.toDto(player);
     }
 
-
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult create(Player resources) {
         Player savedPlayer = playerRepository.save(resources);
         // No default answers; users will submit their own self-assessment
         return ExecutionResult.of(savedPlayer.getId());
     }
-
 
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult update(Player resources) {
@@ -92,7 +96,6 @@ public class PlayerService {
         return ExecutionResult.of(savedPlayer.getId());
     }
 
-
     @Transactional
     public ExecutionResult deleteAll(Long[] ids) {
         for (Long id : ids) {
@@ -100,7 +103,6 @@ public class PlayerService {
         }
         return ExecutionResult.of(null, Map.of("count", ids.length, "ids", ids));
     }
-
 
     public void download(List<PlayerDto> all, HttpServletResponse response) throws IOException {
         List<Map<String, Object>> list = new ArrayList<>();
@@ -120,11 +122,9 @@ public class PlayerService {
         FileUtil.downloadExcel(list, response);
     }
 
-
     public Player findByUserId(Long userId) {
         return playerRepository.findByUserId(userId);
     }
-
 
     public PlayerAssessmentStatusDto checkAssessmentStatus() {
         // Get current user ID
@@ -144,5 +144,176 @@ public class PlayerService {
                 ? "Self-assessment completed."
                 : "Please complete your self-assessment before joining any events.";
         return new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
+    }
+
+    /**
+     * Get all players with their doubles ranking, games played, wins, losses, and record.
+     */
+    public List<PlayerDoublesStatsDto> getAllPlayersDoublesStats() {
+        List<Player> players = playerRepository.findAll();
+        List<PlayerDoublesStatsDto> result = new ArrayList<>();
+
+        // For efficient lookup
+        Map<Long, PlayerSportRating> doublesRatings = new HashMap<>();
+        for (Player player : players) {
+            List<PlayerSportRating> ratings = playerSportRatingRepository.findByPlayerId(player.getId());
+            for (PlayerSportRating rating : ratings) {
+                if (rating.getFormat() == Format.DOUBLE) {
+                    doublesRatings.put(player.getId(), rating);
+                    break;
+                }
+            }
+        }
+
+        // Get all matches
+        List<Match> matches = matchService.findAllMatches();
+        // Map teamId to teamPlayers
+        Map<Long, List<TeamPlayer>> teamPlayersMap = new HashMap<>();
+        for (Match match : matches) {
+            if (match.getTeamA() != null && match.getTeamB() != null) {
+                if (match.getTeamA().getTeamSize() == 2 && match.getTeamB().getTeamSize() == 2) {
+                    // Only consider doubles
+                    if (!teamPlayersMap.containsKey(match.getTeamA().getId())) {
+                        teamPlayersMap.put(match.getTeamA().getId(), teamPlayerRepository.findAllByTeamId(match.getTeamA().getId()));
+                    }
+                    if (!teamPlayersMap.containsKey(match.getTeamB().getId())) {
+                        teamPlayersMap.put(match.getTeamB().getId(), teamPlayerRepository.findAllByTeamId(match.getTeamB().getId()));
+                    }
+                }
+            }
+        }
+        // For each player, count games played, wins, losses
+        Map<Long, Integer> gamesPlayed = new HashMap<>();
+        Map<Long, Integer> wins = new HashMap<>();
+        Map<Long, Integer> losses = new HashMap<>();
+        for (Match match : matches) {
+            if (match.getTeamA() != null && match.getTeamB() != null) {
+                if (match.getTeamA().getTeamSize() == 2 && match.getTeamB().getTeamSize() == 2) {
+                    List<TeamPlayer> teamAPlayers = teamPlayersMap.get(match.getTeamA().getId());
+                    List<TeamPlayer> teamBPlayers = teamPlayersMap.get(match.getTeamB().getId());
+                    // Both teams must have 2 players
+                    if (teamAPlayers != null && teamBPlayers != null && teamAPlayers.size() == 2 && teamBPlayers.size() == 2) {
+                        for (TeamPlayer tp : teamAPlayers) {
+                            gamesPlayed.put(tp.getPlayer().getId(), gamesPlayed.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            if (match.isTeamAWin()) {
+                                wins.put(tp.getPlayer().getId(), wins.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            } else {
+                                losses.put(tp.getPlayer().getId(), losses.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            }
+                        }
+                        for (TeamPlayer tp : teamBPlayers) {
+                            gamesPlayed.put(tp.getPlayer().getId(), gamesPlayed.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            if (match.isTeamBWin()) {
+                                wins.put(tp.getPlayer().getId(), wins.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            } else {
+                                losses.put(tp.getPlayer().getId(), losses.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Build DTOs
+        for (Player player : players) {
+            PlayerDoublesStatsDto dto = new PlayerDoublesStatsDto();
+            dto.setPlayerId(player.getId());
+            dto.setPlayerName(player.getName());
+            PlayerSportRating rating = doublesRatings.get(player.getId());
+            dto.setDoublesRanking(rating != null ? rating.getRateScore() : null);
+            int played = gamesPlayed.getOrDefault(player.getId(), 0);
+            int win = wins.getOrDefault(player.getId(), 0);
+            int loss = losses.getOrDefault(player.getId(), 0);
+            dto.setGamesPlayed(played);
+            dto.setWins(win);
+            dto.setLosses(loss);
+            dto.setRecord(win + "-" + loss);
+            result.add(dto);
+        }
+        return result;
+    }
+
+    /**
+     * Get paginated and filtered players with their doubles ranking, games played, wins, losses, and record.
+     */
+    public PageResult<PlayerDoublesStatsDto> getAllPlayersDoublesStats(PlayerQueryCriteria criteria, Pageable pageable) {
+        Page<Player> page = playerRepository.findAll((root, query, cb) -> QueryHelp.getPredicate(root, criteria, cb), pageable);
+        List<Player> players = page.getContent();
+        List<PlayerDoublesStatsDto> result = new ArrayList<>();
+
+        // For efficient lookup
+        Map<Long, PlayerSportRating> doublesRatings = new HashMap<>();
+        for (Player player : players) {
+            List<PlayerSportRating> ratings = playerSportRatingRepository.findByPlayerId(player.getId());
+            for (PlayerSportRating rating : ratings) {
+                if (rating.getFormat() == Format.DOUBLE) {
+                    doublesRatings.put(player.getId(), rating);
+                    break;
+                }
+            }
+        }
+
+        // Get all matches (could be optimized further if needed)
+        List<Match> matches = matchService.findAllMatches();
+        // Map teamId to teamPlayers
+        Map<Long, List<TeamPlayer>> teamPlayersMap = new HashMap<>();
+        for (Match match : matches) {
+            if (match.getTeamA() != null && match.getTeamB() != null) {
+                if (match.getTeamA().getTeamSize() == 2 && match.getTeamB().getTeamSize() == 2) {
+                    if (!teamPlayersMap.containsKey(match.getTeamA().getId())) {
+                        teamPlayersMap.put(match.getTeamA().getId(), teamPlayerRepository.findAllByTeamId(match.getTeamA().getId()));
+                    }
+                    if (!teamPlayersMap.containsKey(match.getTeamB().getId())) {
+                        teamPlayersMap.put(match.getTeamB().getId(), teamPlayerRepository.findAllByTeamId(match.getTeamB().getId()));
+                    }
+                }
+            }
+        }
+        // For each player, count games played, wins, losses
+        Map<Long, Integer> gamesPlayed = new HashMap<>();
+        Map<Long, Integer> wins = new HashMap<>();
+        Map<Long, Integer> losses = new HashMap<>();
+        for (Match match : matches) {
+            if (match.getTeamA() != null && match.getTeamB() != null) {
+                if (match.getTeamA().getTeamSize() == 2 && match.getTeamB().getTeamSize() == 2) {
+                    List<TeamPlayer> teamAPlayers = teamPlayersMap.get(match.getTeamA().getId());
+                    List<TeamPlayer> teamBPlayers = teamPlayersMap.get(match.getTeamB().getId());
+                    if (teamAPlayers != null && teamBPlayers != null && teamAPlayers.size() == 2 && teamBPlayers.size() == 2) {
+                        for (TeamPlayer tp : teamAPlayers) {
+                            gamesPlayed.put(tp.getPlayer().getId(), gamesPlayed.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            if (match.isTeamAWin()) {
+                                wins.put(tp.getPlayer().getId(), wins.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            } else {
+                                losses.put(tp.getPlayer().getId(), losses.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            }
+                        }
+                        for (TeamPlayer tp : teamBPlayers) {
+                            gamesPlayed.put(tp.getPlayer().getId(), gamesPlayed.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            if (match.isTeamBWin()) {
+                                wins.put(tp.getPlayer().getId(), wins.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            } else {
+                                losses.put(tp.getPlayer().getId(), losses.getOrDefault(tp.getPlayer().getId(), 0) + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Build DTOs for paged players
+        for (Player player : players) {
+            PlayerDoublesStatsDto dto = new PlayerDoublesStatsDto();
+            dto.setPlayerId(player.getId());
+            dto.setPlayerName(player.getName());
+            PlayerSportRating rating = doublesRatings.get(player.getId());
+            dto.setDoublesRanking(rating != null ? rating.getRateScore() : null);
+            int played = gamesPlayed.getOrDefault(player.getId(), 0);
+            int win = wins.getOrDefault(player.getId(), 0);
+            int loss = losses.getOrDefault(player.getId(), 0);
+            dto.setGamesPlayed(played);
+            dto.setWins(win);
+            dto.setLosses(loss);
+            dto.setRecord(win + "-" + loss);
+            result.add(dto);
+        }
+        return PageUtil.toPage(result, page.getTotalElements());
     }
 }
