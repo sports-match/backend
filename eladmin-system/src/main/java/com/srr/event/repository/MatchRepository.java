@@ -34,14 +34,17 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
     @Query(value = "DELETE FROM `event_match` where match_group_id in (select id from match_group where event_id = 1)", nativeQuery = true)
     void deleteByMatchGroupEventId(@Param("eventId") Long eventId);
 
-    /**
-     * Find all matches for a specific match group, ordered by match order
-     *
-     * @param matchGroupId ID of the match group
-     * @return List of ordered matches
-     */
-    @Query("SELECT m FROM Match m WHERE m.matchGroup.id = :matchGroupId ORDER BY m.matchOrder ASC")
-    List<Match> findByMatchGroupIdOrderByMatchOrder(@Param("matchGroupId") Long matchGroupId);
+    @Query(value = """
+            SELECT *
+            FROM event_match em
+                     LEFT JOIN team ta ON em.team_a_id = ta.id
+                     LEFT JOIN team tb ON em.team_b_id = tb.id
+                     LEFT JOIN team_player tpa ON ta.id = tpa.team_id
+                     LEFT JOIN team_player tpb ON tb.id = tpb.team_id
+            WHERE tpa.player_id = :playerId
+               OR tpb.player_id = :playerId
+            """, nativeQuery = true)
+    Match getByPlayerId(@Param("playerId") Long playerId);
 
     /**
      * Find all matches where the specified teams are either team A or team B

@@ -1,22 +1,8 @@
-/*
-*  Copyright 2019-2025 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
 package com.srr.player;
 
 import com.srr.player.domain.Player;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
+import com.srr.player.dto.PlayerDetailsDto;
 import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.PlayerDoublesStatsDto;
 import com.srr.player.dto.PlayerQueryCriteria;
@@ -49,22 +35,29 @@ public class PlayerController {
 
     @GetMapping
     @ApiOperation("Query player")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PageResult<PlayerDto>> queryPlayer(PlayerQueryCriteria criteria, Pageable pageable){
         return new ResponseEntity<>(playerService.queryAll(criteria,pageable),HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     @ApiOperation("Get player by ID")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PlayerDto> getById(@PathVariable Long id) {
         return new ResponseEntity<>(playerService.findById(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/dashboard")
+    @ApiOperation("Get player by ID")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable Long id) {
+        return new ResponseEntity<>(playerService.findPlayerDetailsById(id), HttpStatus.OK);
     }
 
     @PutMapping
     @Log("Modify player")
     @ApiOperation("Modify player")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<Object> updatePlayer(@Validated @RequestBody Player resources){
         playerService.update(resources);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -72,7 +65,7 @@ public class PlayerController {
     
     @GetMapping("/assessment-status")
     @ApiOperation("Check if player has completed self-assessment")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus(@RequestParam Long sportId) {
         PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus(sportId);
         return new ResponseEntity<>(status, HttpStatus.OK);
