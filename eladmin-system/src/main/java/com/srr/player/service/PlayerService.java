@@ -15,8 +15,6 @@ import com.srr.event.dto.EventMapper;
 import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.EventRepository;
 import com.srr.event.repository.MatchRepository;
-import com.srr.player.domain.Player;
-import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.*;
 import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.mapper.RatingHistoryMapper;
@@ -198,92 +196,6 @@ public class PlayerService {
                 ? "Self-assessment completed."
                 : "Please complete your self-assessment before joining any events.";
         return new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
-    }
-
-    /**
-     * Get all players with their doubles ranking, games played, wins, losses, and record.
-     */
-    public List<PlayerDoublesStatsDto> getAllPlayersDoublesStats() {
-        List<Player> players = playerRepository.findAll();
-        List<PlayerDoublesStatsDto> result = new ArrayList<>();
-
-        // For efficient lookup
-        Map<Long, PlayerSportRating> doublesRatings = new HashMap<>();
-        for (Player player : players) {
-            List<PlayerSportRating> ratings = playerSportRatingRepository.findByPlayerId(player.getId());
-            for (PlayerSportRating rating : ratings) {
-                if (rating.getFormat() == Format.DOUBLE) {
-                    doublesRatings.put(player.getId(), rating);
-                    break;
-                }
-            }
-        }
-
-        // Get all matches
-        List<Match> matches = matchService.findAllMatches();
-        // Map teamId to teamPlayers
-        Map<Long, List<TeamPlayer>> teamPlayersMap = new HashMap<>();
-        for (Match match : matches) {
-            if (match.getTeamA() != null && match.getTeamB() != null) {
-                if (match.getTeamA().getTeamSize() == 2 && match.getTeamB().getTeamSize() == 2) {
-                    // Only consider doubles
-                    if (!teamPlayersMap.containsKey(match.getTeamA().getId())) {
-                        teamPlayersMap.put(match.getTeamA().getId(), teamPlayerRepository.findAllByTeamId(match.getTeamA().getId()));
-                    }
-                    if (!teamPlayersMap.containsKey(match.getTeamB().getId())) {
-                        teamPlayersMap.put(match.getTeamB().getId(), teamPlayerRepository.findAllByTeamId(match.getTeamB().getId()));
-                    }
-                }
-            }
-        }
-        // For each player, count games played, wins, losses
-        Map<Long, Integer> gamesPlayed = new HashMap<>();
-        Map<Long, Integer> wins = new HashMap<>();
-        Map<Long, Integer> losses = new HashMap<>();
-        for (Match match : matches) {
-            if (match.getTeamA() != null && match.getTeamB() != null) {
-                if (match.getTeamA().getTeamSize() == 2 && match.getTeamB().getTeamSize() == 2) {
-                    List<TeamPlayer> teamAPlayers = teamPlayersMap.get(match.getTeamA().getId());
-                    List<TeamPlayer> teamBPlayers = teamPlayersMap.get(match.getTeamB().getId());
-                    // Both teams must have 2 players
-                    if (teamAPlayers != null && teamBPlayers != null && teamAPlayers.size() == 2 && teamBPlayers.size() == 2) {
-                        for (TeamPlayer tp : teamAPlayers) {
-                            gamesPlayed.put(tp.getPlayer().getId(), gamesPlayed.getOrDefault(tp.getPlayer().getId(), 0) + 1);
-                            if (match.isTeamAWin()) {
-                                wins.put(tp.getPlayer().getId(), wins.getOrDefault(tp.getPlayer().getId(), 0) + 1);
-                            } else {
-                                losses.put(tp.getPlayer().getId(), losses.getOrDefault(tp.getPlayer().getId(), 0) + 1);
-                            }
-                        }
-                        for (TeamPlayer tp : teamBPlayers) {
-                            gamesPlayed.put(tp.getPlayer().getId(), gamesPlayed.getOrDefault(tp.getPlayer().getId(), 0) + 1);
-                            if (match.isTeamBWin()) {
-                                wins.put(tp.getPlayer().getId(), wins.getOrDefault(tp.getPlayer().getId(), 0) + 1);
-                            } else {
-                                losses.put(tp.getPlayer().getId(), losses.getOrDefault(tp.getPlayer().getId(), 0) + 1);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // Build DTOs
-        for (Player player : players) {
-            PlayerDoublesStatsDto dto = new PlayerDoublesStatsDto();
-            dto.setPlayerId(player.getId());
-            dto.setPlayerName(player.getName());
-            PlayerSportRating rating = doublesRatings.get(player.getId());
-            dto.setDoublesRanking(rating != null ? rating.getRateScore() : null);
-            int played = gamesPlayed.getOrDefault(player.getId(), 0);
-            int win = wins.getOrDefault(player.getId(), 0);
-            int loss = losses.getOrDefault(player.getId(), 0);
-            dto.setGamesPlayed(played);
-            dto.setWins(win);
-            dto.setLosses(loss);
-            dto.setRecord(win + "-" + loss);
-            result.add(dto);
-        }
-        return result;
     }
 
     /**
