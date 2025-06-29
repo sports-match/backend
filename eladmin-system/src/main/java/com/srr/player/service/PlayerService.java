@@ -9,6 +9,7 @@ import com.srr.player.dto.*;
 import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.utils.*;
@@ -33,6 +34,7 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerMapper playerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final SportService sportService;
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
 
@@ -48,7 +50,7 @@ public class PlayerService {
                         PlayerSportRatingDto dtoRating = new PlayerSportRatingDto();
                         dtoRating.setId(rating.getId());
                         dtoRating.setPlayerId(rating.getPlayerId());
-                        dtoRating.setSport(rating.getSport());
+                        dtoRating.setSportId(rating.getSportId());
                         dtoRating.setFormat(rating.getFormat());
                         dtoRating.setRateScore(rating.getRateScore());
                         dtoRating.setRateBand(rating.getRateBand());
@@ -137,7 +139,7 @@ public class PlayerService {
     }
 
 
-    public PlayerAssessmentStatusDto checkAssessmentStatus() {
+    public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId) {
         // Get current user ID
         Long currentUserId = SecurityUtils.getCurrentUserId();
         // Find the player associated with the current user
@@ -147,7 +149,7 @@ public class PlayerService {
         }
         // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
         boolean isAssessmentCompleted = false;
-        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(player.getId(), "Badminton", Format.DOUBLE);
+        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), sportId, Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }

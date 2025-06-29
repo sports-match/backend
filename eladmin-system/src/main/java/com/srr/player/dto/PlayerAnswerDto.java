@@ -16,6 +16,8 @@ public class PlayerAnswerDto implements Serializable {
     private Long id;
     
     private Long playerId;
+
+    private Long sportId;
     
     private Long questionId;
     

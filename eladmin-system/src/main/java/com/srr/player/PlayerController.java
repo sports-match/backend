@@ -63,8 +63,8 @@ public class PlayerController {
     @GetMapping("/assessment-status")
     @ApiOperation("Check if player has completed self-assessment")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus() {
-        PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus();
+    public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus(@RequestParam Long sportId) {
+        PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus(sportId);
         return new ResponseEntity<>(status, HttpStatus.OK);
     }
 }
