@@ -6,7 +6,6 @@ import com.srr.player.dto.PlayerDetailsDto;
 import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.PlayerDoublesStatsDto;
 import com.srr.player.dto.PlayerEventSummaryDto;
-import com.srr.player.dto.PlayerLastEventResultDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.service.PlayerService;
 import io.swagger.annotations.Api;
