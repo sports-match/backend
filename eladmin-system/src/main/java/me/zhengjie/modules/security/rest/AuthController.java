@@ -10,6 +10,7 @@ import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.service.PlayerService;
+import com.srr.sport.service.SportService;
 import com.wf.captcha.base.Captcha;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -85,6 +86,7 @@ public class AuthController {
     private final PlayerSportRatingRepository playerSportRatingRepository;
 
     private final String REGISTER_KEY_PREFIX = "register:email:";
+    private final SportService sportService;
 
     @Log("login")
     @ApiOperation("login")
@@ -129,9 +131,10 @@ public class AuthController {
         if (jwtUser.getUser() != null && jwtUser.getUser().getUserType() != null && jwtUser.getUser().getUserType().name().equals("PLAYER")) {
             Player player = playerService.findByUserId(jwtUser.getUser().getId());
             boolean isAssessmentCompleted = false;
+            final var badminton = sportService.getBadminton();
             String message = "Please complete your self-assessment before joining any events.";
             if (player != null) {
-                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(player.getId(), "badminton", Format.DOUBLE);
+                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), badminton.getId(), Format.DOUBLE);
                 if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
                     isAssessmentCompleted = true;
                     message = "Self-assessment completed.";
@@ -140,7 +143,7 @@ public class AuthController {
             PlayerAssessmentStatusDto assessmentStatus = new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
             authInfo.put("assessmentStatus", assessmentStatus);
         }
-        
+
         if (loginProperties.isSingleLogin()) {
             // 踢掉之前已经登录的token
             onlineUserService.kickOutForUsername(authUser.getUsername());
@@ -327,18 +330,18 @@ public class AuthController {
     private void assignRoleToUser(User user, String roleName) {
         try {
             final Role role = roleRepository.findByName(roleName);
-            
+
             if (role != null) {
                 // Add the role to user's roles
                 Set<Role> roles = user.getRoles();
                 if (roles == null) {
                     roles = new HashSet<>();
                 }
-                
+
                 // Check if user already has this role
                 boolean alreadyHasRole = roles.stream()
-                    .anyMatch(r -> r.getId().equals(role.getId()));
-                
+                        .anyMatch(r -> r.getId().equals(role.getId()));
+
                 if (!alreadyHasRole) {
                     roles.add(role);
                     user.setRoles(roles);

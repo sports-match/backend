@@ -10,6 +10,7 @@ import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
+import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,7 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerMapper playerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final SportService sportService;
 
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
@@ -46,7 +48,7 @@ public class PlayerService {
                         PlayerSportRatingDto dtoRating = new PlayerSportRatingDto();
                         dtoRating.setId(rating.getId());
                         dtoRating.setPlayerId(rating.getPlayerId());
-                        dtoRating.setSport(rating.getSport());
+                        dtoRating.setSportId(rating.getSportId());
                         dtoRating.setFormat(rating.getFormat());
                         dtoRating.setRateScore(rating.getRateScore());
                         dtoRating.setRateBand(rating.getRateBand());
@@ -136,7 +138,8 @@ public class PlayerService {
         }
         // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
         boolean isAssessmentCompleted = false;
-        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportNameAndFormat(player.getId(), "Badminton", Format.DOUBLE);
+        var badminton = sportService.getBadminton();
+        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), badminton.getId(), Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }
