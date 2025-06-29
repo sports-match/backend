@@ -20,11 +20,7 @@ public class TeamPlayerDto implements Serializable {
     @ApiModelProperty(value = "Team id")
     private Long teamId;
 
-    @ApiModelProperty(value = "Player id")
-    private Long playerId;
-    
-    @ApiModelProperty(value = "Player name")
-    private String playerName;
+    private PlayerDto player;
 
     @ApiModelProperty(value = "Score")
     private Double score;
