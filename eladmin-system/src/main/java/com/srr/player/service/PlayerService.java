@@ -128,7 +128,7 @@ public class PlayerService {
     }
 
 
-    public PlayerAssessmentStatusDto checkAssessmentStatus() {
+    public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId) {
         // Get current user ID
         Long currentUserId = SecurityUtils.getCurrentUserId();
         // Find the player associated with the current user
@@ -138,8 +138,7 @@ public class PlayerService {
         }
         // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
         boolean isAssessmentCompleted = false;
-        var badminton = sportService.getBadminton();
-        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), badminton.getId(), Format.DOUBLE);
+        Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), sportId, Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }
