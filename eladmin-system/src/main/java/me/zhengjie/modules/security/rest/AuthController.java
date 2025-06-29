@@ -121,7 +121,7 @@ public class AuthController {
             } else if (jwtUser.getUser().getUserType().name().equals("ORGANIZER")) {
                 List<EventOrganizer> organizers = eventOrganizerService.findByUserId(jwtUser.getUser().getId());
                 if (organizers != null && !organizers.isEmpty()) {
-                    authInfo.put("organizerId", organizers.get(0).getId());
+                    authInfo.put("organizerInfo", organizers.get(0));
                 }
             }
         }
