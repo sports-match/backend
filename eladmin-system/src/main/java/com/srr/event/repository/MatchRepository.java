@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -79,4 +80,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
      * @return List of matches for the event.
      */
     List<Match> findByMatchGroupEventId(Long eventId);
+
+    @Query("SELECT m FROM Match m WHERE m.matchGroup.event.id = :eventId AND (m.teamA.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId) OR m.teamB.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId))")
+    List<Match> findByEventIdAndPlayerId(Long eventId, Long playerId);
 }

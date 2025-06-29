@@ -5,6 +5,8 @@ import com.srr.player.dto.PlayerAssessmentStatusDto;
 import com.srr.player.dto.PlayerDetailsDto;
 import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.PlayerDoublesStatsDto;
+import com.srr.player.dto.PlayerEventSummaryDto;
+import com.srr.player.dto.PlayerLastEventResultDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.service.PlayerService;
 import io.swagger.annotations.Api;
@@ -77,5 +79,20 @@ public class PlayerController {
     public ResponseEntity<PageResult<PlayerDoublesStatsDto>> getAllPlayersDoublesStats(
             PlayerQueryCriteria criteria, Pageable pageable) {
         return new ResponseEntity<>(playerService.getAllPlayersDoublesStats(criteria, pageable), HttpStatus.OK);
+    }
+
+
+    @GetMapping("/{id}/events-summary")
+    @ApiOperation("Get all events with matches and net rating change for player")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<List<PlayerEventSummaryDto>> getAllEventsWithResultsAndRatingChange(@PathVariable Long id) {
+        return ResponseEntity.ok(playerService.getAllEventsWithResultsAndRatingChange(id));
+    }
+
+    @GetMapping("/{id}/last-event-summary")
+    @ApiOperation("Get the last event with matches and net rating change for player")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<PlayerEventSummaryDto> getLastEventWithResultsAndRatingChange(@PathVariable Long id) {
+        return ResponseEntity.ok(playerService.getLastEventWithResultsAndRatingChange(id));
     }
 }

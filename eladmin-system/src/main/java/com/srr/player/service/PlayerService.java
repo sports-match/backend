@@ -9,6 +9,7 @@ import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
 import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.PlayerDoublesStatsDto;
+import com.srr.player.dto.PlayerEventSummaryDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.event.dto.EventMapper;
@@ -118,13 +119,13 @@ public class PlayerService {
 
         var singleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
 
-        if (singleRatingsHistory != null) {
+        if (singleRatingsHistory != null && !singleRatingsHistory.isEmpty()) {
             singleRating = singleRatingsHistory.get(0).getRateScore();
             singleRatingChanges = singleRatingsHistory.get(0).getChanges();
         }
 
         var doubleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
-        if (doubleRatingsHistory != null) {
+        if (doubleRatingsHistory != null && !doubleRatingsHistory.isEmpty()) {
             doubleRating = doubleRatingsHistory.get(0).getRateScore();
             doubleRatingChanges = doubleRatingsHistory.get(0).getChanges();
         }
@@ -281,5 +282,61 @@ public class PlayerService {
             result.add(dto);
         }
         return PageUtil.toPage(result, page.getTotalElements());
+    }
+
+    /**
+     * Get all events (completed) for a player, with matches and net rating change for each event
+     */
+    public List<PlayerEventSummaryDto> getAllEventsWithResultsAndRatingChange(Long playerId) {
+        var events = eventRepository.getPlayerCompletedEvents(playerId);
+        return events.stream().map(event -> {
+            var eventDto = eventMapper.toDto(event);
+            var matches = matchRepository.findByEventIdAndPlayerId(event.getId(), playerId)
+                .stream()
+                .map(matchMapper::toDto)
+                .toList();
+            var ratingChanges = ratingHistoryRepository.findByPlayerIdAndEventIdOrderByCreateTimeDesc(playerId, event.getId())
+                .stream()
+                .map(ratingHistoryMapper::toDto)
+                .toList();
+            double netChange = 0.0;
+            if (!ratingChanges.isEmpty()) {
+                netChange = ratingChanges.stream()
+                    .mapToDouble(dto -> dto.getChanges() != null ? dto.getChanges() : 0.0)
+                    .sum();
+            }
+            return new PlayerEventSummaryDto()
+                .setEvent(eventDto)
+                .setMatches(matches)
+                .setNetRatingChange(netChange);
+        }).toList();
+    }
+
+    /**
+     * Get the last event (completed) for a player, with matches and net rating change
+     */
+    public PlayerEventSummaryDto getLastEventWithResultsAndRatingChange(Long playerId) {
+        var lastEvent = eventRepository.getPlayerLastEvent(playerId)
+            .orElse(null);
+        if (lastEvent == null) return null;
+        var eventDto = eventMapper.toDto(lastEvent);
+        var matches = matchRepository.findByEventIdAndPlayerId(lastEvent.getId(), playerId)
+            .stream()
+            .map(matchMapper::toDto)
+            .toList();
+        var ratingChanges = ratingHistoryRepository.findByPlayerIdAndEventIdOrderByCreateTimeDesc(playerId, lastEvent.getId())
+            .stream()
+            .map(ratingHistoryMapper::toDto)
+            .toList();
+        double netChange = 0.0;
+        if (!ratingChanges.isEmpty()) {
+            netChange = ratingChanges.stream()
+                .mapToDouble(dto -> dto.getChanges() != null ? dto.getChanges() : 0.0)
+                .sum();
+        }
+        return new PlayerEventSummaryDto()
+            .setEvent(eventDto)
+            .setMatches(matches)
+            .setNetRatingChange(netChange);
     }
 }
