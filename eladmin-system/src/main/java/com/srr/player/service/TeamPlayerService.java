@@ -266,4 +266,12 @@ public class TeamPlayerService {
             teamPlayerRepository.save(tp);
         }
     }
+
+    public TeamPlayerStatus getTeamPlayerStatus(Long eventId, Long playerId) {
+        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, playerId);
+        if (teamPlayer == null) {
+            return TeamPlayerStatus.NOT_REGISTERED;
+        }
+        return teamPlayer.getStatus();
+    }
 }
