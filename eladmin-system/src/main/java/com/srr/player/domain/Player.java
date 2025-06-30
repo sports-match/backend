@@ -15,6 +15,7 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
 * @description
@@ -77,6 +78,9 @@ public class Player implements Serializable {
     @Column(name = "date_of_birth")
     @ApiModelProperty(value = "Date of Birth")
     private LocalDate dateOfBirth;
+
+    @OneToMany(mappedBy = "player")
+    private List<PlayerSportRating> playerSportRating;
 
     public void copy(Player source){
         BeanUtil.copyProperties(source,this, CopyOptions.create().setIgnoreNullValue(true));

@@ -12,7 +12,7 @@ import org.mapstruct.ReportingPolicy;
  * @date 2025-05-25
  **/
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {MatchGroupMapper.class, TeamMapper.class})
+        uses = {TeamMapper.class})
 public interface MatchMapper extends BaseMapper<MatchDto, Match> {
 
 }

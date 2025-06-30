@@ -39,4 +39,7 @@ public class MatchGroup implements Serializable {
 
     @OneToMany(mappedBy = "matchGroup")
     private List<Team> teams = new ArrayList<>();
+
+    @OneToMany(mappedBy = "matchGroup")
+    private List<Match> matches = new ArrayList<>();
 }
