@@ -17,9 +17,6 @@ public class MatchDto implements Serializable {
     @ApiModelProperty(value = "id")
     private Long id;
     
-    @ApiModelProperty(value = "Match Group id")
-    private MatchGroupDto matchGroup;
-    
     @ApiModelProperty(value = "Team A id")
     private TeamDto teamA;
     

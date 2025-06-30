@@ -1,5 +1,6 @@
 package com.srr.player.dto;
 
+import com.srr.enumeration.TeamPlayerStatus;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -19,15 +20,13 @@ public class TeamPlayerDto implements Serializable {
     @ApiModelProperty(value = "Team id")
     private Long teamId;
 
-    @ApiModelProperty(value = "Player id")
-    private Long playerId;
-    
-    @ApiModelProperty(value = "Player name")
-    private String playerName;
+    private PlayerDto player;
 
     @ApiModelProperty(value = "Score")
     private Double score;
 
     @ApiModelProperty(value = "Is checked in")
     private Boolean isCheckedIn;
+
+    private TeamPlayerStatus status;
 }

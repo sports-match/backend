@@ -7,6 +7,7 @@ import com.srr.event.domain.Tag;
 import com.srr.event.domain.WaitList;
 import com.srr.event.dto.*;
 import com.srr.event.mapper.MatchGroupMapper;
+import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.*;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.repository.EventOrganizerRepository;
@@ -60,6 +61,7 @@ public class EventService {
     private final PlayerService playerService;
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupMapper matchGroupMapper;
+    private final MatchMapper matchMapper;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -120,10 +122,8 @@ public class EventService {
     }
 
     /**
-     * 
-     *
-     * @param resource 
-     * @return 
+     * @param resource
+     * @return
      */
     @Transactional
     public EventDto create(@Valid EventDto resource) {
@@ -141,7 +141,7 @@ public class EventService {
             resource.setCheckInStart(new Timestamp(resource.getEventTime().getTime() - 60 * 60 * 1000)); // Default to 1 hour before
         }
 
-        if(resource.getCheckInStart() != null && resource.getCheckInStart().after(resource.getEventTime())) {
+        if (resource.getCheckInStart() != null && resource.getCheckInStart().after(resource.getEventTime())) {
             throw new BadRequestException("Check-in start time cannot be after event time.");
         }
         // Validate check-in window
@@ -252,14 +252,14 @@ public class EventService {
         if (playerId == null) {
             throw new BadRequestException("Player ID is required to join event");
         }
-        final var playerDto = playerService.findById(playerId);
-        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, "Badminton", Format.DOUBLE);
-        if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
-            throw new BadRequestException("Please complete your self-assessment before joining an event.");
-        }
 
         Event event = eventRepository.findById(joinEventDto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(joinEventDto.getEventId())));
+
+        var ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(playerId, event.getSportId(), Format.DOUBLE);
+        if (ratingOpt.isEmpty() || ratingOpt.get().getRateScore() == null || ratingOpt.get().getRateScore() <= 0) {
+            throw new BadRequestException("Please complete your self-assessment before joining an event.");
+        }
 
         // Block joining if event is private
         if (Boolean.FALSE.equals(event.getIsPublic())) {
@@ -302,7 +302,7 @@ public class EventService {
 
         // Calculate average rating for the new team
         double avg = 0.0;
-        if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null) {
+        if (ratingOpt.get().getRateScore() != null) {
             avg = ratingOpt.get().getRateScore();
         }
         team.setAverageScore(avg);
@@ -490,5 +490,23 @@ public class EventService {
     public List<MatchGroupDto> findGroup(Long eventId) {
         final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
         return matchGroupMapper.toDto(matchGroup);
+    }
+
+    /**
+     * Get event results: groups and their matches for a given event
+     */
+    public List<MatchGroupDto> getEventResults(Long eventId) {
+        var groups = matchGroupRepository.findAllByEventId(eventId);
+        return groups.stream().map(group -> {
+            var groupDto = matchGroupMapper.toDto(group);
+            var matches = matchRepository.findAllByMatchGroupId(group.getId())
+                .stream()
+                .map(match -> {
+                    return matchMapper.toDto(match);
+                })
+                .toList();
+            groupDto.setMatches(matches);
+            return groupDto;
+        }).toList();
     }
 }

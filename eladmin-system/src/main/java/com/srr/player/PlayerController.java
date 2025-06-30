@@ -1,23 +1,11 @@
-/*
-*  Copyright 2019-2025 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
 package com.srr.player;
 
 import com.srr.player.domain.Player;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
+import com.srr.player.dto.PlayerDetailsDto;
 import com.srr.player.dto.PlayerDto;
+import com.srr.player.dto.PlayerDoublesStatsDto;
+import com.srr.player.dto.PlayerEventSummaryDto;
 import com.srr.player.dto.PlayerQueryCriteria;
 import com.srr.player.service.PlayerService;
 import io.swagger.annotations.Api;
@@ -31,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
 * @author Chanheng
@@ -46,22 +36,29 @@ public class PlayerController {
 
     @GetMapping
     @ApiOperation("Query player")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PageResult<PlayerDto>> queryPlayer(PlayerQueryCriteria criteria, Pageable pageable){
         return new ResponseEntity<>(playerService.queryAll(criteria,pageable),HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     @ApiOperation("Get player by ID")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PlayerDto> getById(@PathVariable Long id) {
         return new ResponseEntity<>(playerService.findById(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/dashboard")
+    @ApiOperation("Get player by ID")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable Long id) {
+        return new ResponseEntity<>(playerService.findPlayerDetailsById(id), HttpStatus.OK);
     }
 
     @PutMapping
     @Log("Modify player")
     @ApiOperation("Modify player")
-    @PreAuthorize("hasAuthority('Admin')")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<Object> updatePlayer(@Validated @RequestBody Player resources){
         playerService.update(resources);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -69,9 +66,32 @@ public class PlayerController {
     
     @GetMapping("/assessment-status")
     @ApiOperation("Check if player has completed self-assessment")
-    @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus() {
-        PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus();
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<PlayerAssessmentStatusDto> checkAssessmentStatus(@RequestParam Long sportId) {
+        PlayerAssessmentStatusDto status = playerService.checkAssessmentStatus(sportId);
         return new ResponseEntity<>(status, HttpStatus.OK);
+    }
+
+    @GetMapping("/doubles-stats")
+    @ApiOperation("Get all players' doubles stats (ranking, games played, record) with filter and pagination")
+    @PreAuthorize("hasAnyAuthority('Organizer','Player')")
+    public ResponseEntity<PageResult<PlayerDoublesStatsDto>> getAllPlayersDoublesStats(
+            PlayerQueryCriteria criteria, Pageable pageable) {
+        return new ResponseEntity<>(playerService.getAllPlayersDoublesStats(criteria, pageable), HttpStatus.OK);
+    }
+
+
+    @GetMapping("/{id}/events-summary")
+    @ApiOperation("Get all events with matches and net rating change for player")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<List<PlayerEventSummaryDto>> getAllEventsWithResultsAndRatingChange(@PathVariable Long id) {
+        return ResponseEntity.ok(playerService.getAllEventsWithResultsAndRatingChange(id));
+    }
+
+    @GetMapping("/{id}/last-event-summary")
+    @ApiOperation("Get the last event with matches and net rating change for player")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<PlayerEventSummaryDto> getLastEventWithResultsAndRatingChange(@PathVariable Long id) {
+        return ResponseEntity.ok(playerService.getLastEventWithResultsAndRatingChange(id));
     }
 }

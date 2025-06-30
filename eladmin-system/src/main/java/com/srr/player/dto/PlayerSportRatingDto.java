@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 public class PlayerSportRatingDto implements Serializable {
     private Long id;
     private Long playerId;
-    private String sport;
+    private Long sportId;
     private Format format;
     private Double rateScore;
     private String rateBand;

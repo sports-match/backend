@@ -26,6 +26,10 @@ public class RatingHistory implements Serializable {
     @JoinColumn(name = "player_id")
     private Player player;
 
+    @ManyToOne
+    @JoinColumn(name = "player_sport_rating_id")
+    private PlayerSportRating playerSportRating;
+
     @Column(name = "rate_score")
     @ApiModelProperty(value = "Score")
     private Double rateScore;

@@ -10,6 +10,7 @@ import com.srr.player.repository.PlayerAnswerRepository;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.QuestionRepository;
+import com.srr.sport.service.SportService;
 import com.srr.utils.RatingService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
@@ -26,10 +27,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
-* @description PlayerAnswer service implementation
-* @author Chanheng
-* @date 2025-05-31
-**/
+ * @author Chanheng
+ * @description PlayerAnswer service implementation
+ * @date 2025-05-31
+ **/
 @Service
 @RequiredArgsConstructor
 public class PlayerAnswerService {
@@ -39,36 +40,32 @@ public class PlayerAnswerService {
     private final PlayerRepository playerRepository;
     private final PlayerSportRatingRepository playerSportRatingRepository;
     private final RatingService ratingService;
+    private final SportService sportService;
 
-    
+
     public PageResult<PlayerAnswerDto> queryAll(PlayerAnswerDto criteria, Pageable pageable) {
         Page<PlayerAnswer> page = playerAnswerRepository.findAll((root, query, cb) ->
                 QueryHelp.getPredicate(root, criteria, cb), pageable);
         return PageUtil.toPage(page.map(this::toDto));
     }
 
-    
+
     public List<PlayerAnswerDto> getByPlayerId(Long playerId) {
         return playerAnswerRepository.findByPlayerId(playerId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
-    
+
     public List<PlayerAnswerDto> getByPlayerIdAndCategory(Long playerId, String category) {
         return playerAnswerRepository.findByPlayerIdAndQuestionCategory(playerId, category).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
-    
-    @Transactional(rollbackFor = Exception.class)
-    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers) {
-        return submitSelfAssessment(answers, "Badminton", Format.DOUBLE);
-    }
 
     // Overloaded method to support sport/format from controller
-    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, String sport, Format format) {
+    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, Long sportId, Format format) {
         if (answers.isEmpty()) {
             throw new BadRequestException("No answers provided");
         }
@@ -92,24 +89,18 @@ public class PlayerAnswerService {
             answer.setAnswerValue(answerDto.getAnswerValue());
             savedAnswers.add(playerAnswerRepository.save(answer));
         }
-        // Query sportId for given sport name
-        Long sportId = questionRepository.findAll().stream()
-            .filter(q -> q.getSport() != null && q.getSport().getName().equalsIgnoreCase(sport))
-            .map(q -> q.getSport().getId())
-            .findFirst()
-            .orElseThrow(() -> new BadRequestException("Sport not found: " + sport));
         // Query questions by sportId and format
         List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, format);
         List<Long> questionIds = questions.stream().map(Question::getId).toList();
         // Only consider answers for these questions
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
-            .filter(ans -> questionIds.contains(ans.getQuestionId()))
-            .collect(Collectors.toList());
-        updatePlayerSportRating(playerId, sport, format, relevantAnswers);
+                .filter(ans -> questionIds.contains(ans.getQuestionId()))
+                .collect(Collectors.toList());
+        updatePlayerSportRating(playerId, sportId, format, relevantAnswers);
         return savedAnswers.stream().map(this::toDto).collect(Collectors.toList());
     }
 
-    
+
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult create(PlayerAnswerDto resources) {
         PlayerAnswer playerAnswer = new PlayerAnswer();
@@ -120,11 +111,11 @@ public class PlayerAnswerService {
         // Recalculate player sport rating after creating an answer
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(resources.getPlayerId());
         // Use default sport/format for single answer creation
-        updatePlayerSportRating(resources.getPlayerId(), "Badminton", Format.DOUBLE, answers);
+        updatePlayerSportRating(resources.getPlayerId(), resources.getSportId(), Format.DOUBLE, answers);
         return ExecutionResult.of(saved.getId());
     }
 
-    
+
     @Transactional
     public ExecutionResult update(PlayerAnswerDto resources) {
         PlayerAnswer playerAnswer = playerAnswerRepository.findById(resources.getId())
@@ -139,11 +130,11 @@ public class PlayerAnswerService {
         PlayerAnswer saved = playerAnswerRepository.save(playerAnswer);
         // Recalculate player sport rating after update
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(resources.getPlayerId());
-        updatePlayerSportRating(resources.getPlayerId(), "Badminton", Format.DOUBLE, answers);
+        updatePlayerSportRating(resources.getPlayerId(), resources.getSportId(), Format.DOUBLE, answers);
         return ExecutionResult.of(saved.getId());
     }
 
-    
+
     @Transactional
     public ExecutionResult delete(Long id) {
         PlayerAnswer playerAnswer = playerAnswerRepository.findById(id)
@@ -152,18 +143,19 @@ public class PlayerAnswerService {
         playerAnswerRepository.deleteById(id);
         // Recalculate player sport rating after delete
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(playerId);
-        updatePlayerSportRating(playerId, "Badminton", Format.DOUBLE, answers);
+        var badminton = sportService.getBadminton();
+        updatePlayerSportRating(playerId, badminton.getId(), Format.DOUBLE, answers);
         return ExecutionResult.ofDeleted(id);
     }
 
-    
+
     public PlayerAnswerDto findById(Long id) {
         Optional<PlayerAnswer> playerAnswer = playerAnswerRepository.findById(id);
         ValidationUtil.isNull(playerAnswer, "PlayerAnswer", "id", id);
         return toDto(playerAnswer.get());
     }
 
-    
+
     public boolean hasCompletedSelfAssessment(Long playerId) {
         long count = playerAnswerRepository.countByPlayerId(playerId);
         // Consider assessment complete if at least one answer exists
@@ -179,7 +171,7 @@ public class PlayerAnswerService {
         dto.setAnswerValue(playerAnswer.getAnswerValue());
         dto.setCreateTime(playerAnswer.getCreateTime());
         dto.setUpdateTime(playerAnswer.getUpdateTime());
-        
+
         // Load question details if available
         if (playerAnswer.getQuestion() != null) {
             dto.setQuestionText(playerAnswer.getQuestion().getText());
@@ -191,20 +183,22 @@ public class PlayerAnswerService {
                 dto.setQuestionCategory(question.getCategory());
             });
         }
-        
+
         return dto;
     }
-    
+
     // New updatePlayerSportRating overload to accept relevant answers
-    private void updatePlayerSportRating(Long playerId, String sport, Format format, List<PlayerAnswer> answers) {
+    private void updatePlayerSportRating(Long playerId, Long sportId, Format format, List<PlayerAnswer> answers) {
         if (answers.isEmpty()) {
             return;
         }
         double srrd = ratingService.calculateInitialRating(answers);
-        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportAndFormat(playerId, sport, format)
+        final Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", playerId.toString()));
+        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(playerId, sportId, format)
                 .orElse(new PlayerSportRating());
-        rating.setPlayerId(playerId);
-        rating.setSport(sport);
+        rating.setPlayer(player);
+        rating.setSportId(sportId);
         rating.setFormat(format);
         rating.setRateScore(srrd);
         rating.setRateBand(null);

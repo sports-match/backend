@@ -1,15 +1,18 @@
 package com.srr.event;
 
 import com.srr.enumeration.EventStatus;
+import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.event.dto.*;
 import com.srr.event.service.EventService;
 import com.srr.event.service.MatchGenerationService;
 import com.srr.event.service.MatchGroupService;
 import com.srr.event.service.MatchService;
+import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.TeamPlayerService;
+import com.srr.player.service.TeamService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,7 @@ import me.zhengjie.annotation.rest.AnonymousGetMapping;
 import me.zhengjie.modules.security.service.SecurityContextUtils;
 import me.zhengjie.modules.security.service.enums.UserType;
 import me.zhengjie.utils.PageResult;
+import me.zhengjie.utils.SecurityUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +30,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,25 +52,28 @@ public class EventController {
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
     private final MatchService matchService;
+    private final TeamService teamService;
 
     @GetMapping
     @ApiOperation("Query event")
     @AnonymousGetMapping
     public ResponseEntity<PageResult<EventDto>> queryEvent(EventQueryCriteria criteria, Pageable pageable) {
         final var result = eventService.queryAll(criteria, pageable);
-        if (SecurityContextUtils.currentUserIsNotNull()) {
+        String token = SecurityUtils.getToken();
+        if (token != null && !token.isBlank() && SecurityContextUtils.currentUserIsNotNull()) {
             var user = SecurityContextUtils.getCurrentUser();
             var player = playerRepository.findByUserId(user.getId());
-            if (UserType.PLAYER.equals(user.getUserType())) {
+            if (player != null && UserType.PLAYER.equals(user.getUserType())) {
                 for (var event : result.getContent()) {
-                    final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
-                    if (isJoined != null) {
-                        event.setJoined(true);
-                    }
+                    var status = teamPlayerService.getTeamPlayerStatus(event.getId(), player.getId());
+                    event.setPlayerStatus(status);
                 }
             }
+        } else {
+            for (var event : result.getContent()) {
+                event.setPlayerStatus(TeamPlayerStatus.NOT_REGISTERED);
+            }
         }
-
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -74,18 +82,18 @@ public class EventController {
     @AnonymousGetMapping
     public ResponseEntity<EventDto> getById(@PathVariable Long id) {
         final var event = eventService.findById(id);
-        if (SecurityContextUtils.currentUserIsNotNull()) {
+        String token = SecurityUtils.getToken();
+        if (token != null && !token.isBlank() && SecurityContextUtils.currentUserIsNotNull()) {
             var user = SecurityContextUtils.getCurrentUser();
             var player = playerRepository.findByUserId(user.getId());
-            if (UserType.PLAYER.equals(user.getUserType())) {
-                final var isJoined = teamRepository.checkIsJoined(event.getId(), player.getId());
-                if (isJoined != null) {
-                    event.setJoined(true);
-                }
+            if (UserType.PLAYER.equals(user.getUserType()) && player != null) {
+                var status = teamPlayerService.getTeamPlayerStatus(event.getId(), player.getId());
+                event.setPlayerStatus(status);
             }
         }
         return new ResponseEntity<>(event, HttpStatus.OK);
     }
+
 
     @PostMapping
     @Log("Add event")

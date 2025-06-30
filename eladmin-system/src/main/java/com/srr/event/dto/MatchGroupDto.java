@@ -1,5 +1,6 @@
 package com.srr.event.dto;
 
+import com.srr.event.dto.MatchDto;
 import com.srr.player.dto.TeamDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -31,4 +32,7 @@ public class MatchGroupDto implements Serializable {
     private String courtNumbers;
 
     private List<TeamDto> teams;
+
+    // For event results API: matches in this group
+    private List<MatchDto> matches;
 }

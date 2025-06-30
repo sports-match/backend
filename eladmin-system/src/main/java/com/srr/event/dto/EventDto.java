@@ -17,7 +17,10 @@ package com.srr.event.dto;
 
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
+import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.player.dto.PlayerDto;
+import com.srr.player.dto.TeamDto;
+import com.srr.player.dto.TeamPlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -93,10 +96,10 @@ public class EventDto implements Serializable {
     private Boolean isPublic;
 
     private boolean allowWaitList;
-    
+
     @ApiModelProperty(value = "Check-in time")
     private Timestamp checkInAt;
-    
+
     @ApiModelProperty(value = "Check-in start time", required = true)
     @NotNull(message = "Check-in start time is mandatory")
     private Timestamp checkInStart;
@@ -112,19 +115,25 @@ public class EventDto implements Serializable {
     private Integer groupCount;
 
     private String posterImage;
-    
+
     @ApiModelProperty(value = "Current number of participants")
     private Integer currentParticipants;
-    
+
     @ApiModelProperty(value = "Maximum number of participants", required = true)
     @NotNull(message = "Max participants is mandatory")
     private Integer maxParticipants;
-    
+
     @ApiModelProperty(value = "Co-host players")
     private List<PlayerDto> coHostPlayers;
-    
+
     @ApiModelProperty(value = "Tags")
     private Set<String> tags = new HashSet<>();
 
     private boolean isJoined;
+
+    // Indicates if the current user can sign up for this event (for unauthenticated users/future events)
+    private boolean canSignUp;
+
+    // Player's status for this event (for authenticated users)
+    private TeamPlayerStatus playerStatus;
 }
