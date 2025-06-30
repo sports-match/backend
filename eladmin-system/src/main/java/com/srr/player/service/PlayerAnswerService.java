@@ -193,9 +193,11 @@ public class PlayerAnswerService {
             return;
         }
         double srrd = ratingService.calculateInitialRating(answers);
+        final Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", playerId.toString()));
         PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(playerId, sportId, format)
                 .orElse(new PlayerSportRating());
-        rating.setPlayerId(playerId);
+        rating.setPlayer(player);
         rating.setSportId(sportId);
         rating.setFormat(format);
         rating.setRateScore(srrd);

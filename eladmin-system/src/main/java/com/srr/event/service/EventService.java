@@ -502,9 +502,7 @@ public class EventService {
             var matches = matchRepository.findAllByMatchGroupId(group.getId())
                 .stream()
                 .map(match -> {
-                    var dto = matchMapper.toDto(match);
-                    dto.setMatchGroup(null); // Prevent circular reference in JSON
-                    return dto;
+                    return matchMapper.toDto(match);
                 })
                 .toList();
             groupDto.setMatches(matches);

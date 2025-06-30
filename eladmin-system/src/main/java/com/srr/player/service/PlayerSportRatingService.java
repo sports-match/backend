@@ -31,7 +31,7 @@ public class PlayerSportRatingService {
     private PlayerSportRatingDto toDto(PlayerSportRating entity) {
         PlayerSportRatingDto dto = new PlayerSportRatingDto();
         dto.setId(entity.getId());
-        dto.setPlayerId(entity.getPlayerId());
+        dto.setPlayerId(entity.getPlayer().getId());
         dto.setSportId(entity.getSportId());
         dto.setFormat(entity.getFormat());
         dto.setRateScore(entity.getRateScore());

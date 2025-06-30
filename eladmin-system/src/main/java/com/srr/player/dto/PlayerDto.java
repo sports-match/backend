@@ -54,5 +54,5 @@ public class PlayerDto implements Serializable {
     private LocalDate dateOfBirth;
 
     @ApiModelProperty(value = "各运动评分")
-    private List<PlayerSportRatingDto> sportRatings;
+    private List<PlayerSportRatingDto> playerSportRating;
 }

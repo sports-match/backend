@@ -202,13 +202,6 @@ public class EventController {
         return new ResponseEntity<>(matchService.findMatchesByGroupId(groupId), HttpStatus.OK);
     }
 
-    @GetMapping("/{eventId}/results")
-    @ApiOperation("Get event results: groups and their matches")
-    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<List<MatchGroupDto>> getEventResults(@PathVariable Long eventId) {
-        return ResponseEntity.ok(eventService.getEventResults(eventId));
-    }
-
     @DeleteMapping
     @Log("Delete event")
     @ApiOperation("Delete event")

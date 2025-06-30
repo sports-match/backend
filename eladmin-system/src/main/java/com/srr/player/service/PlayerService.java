@@ -59,29 +59,28 @@ public class PlayerService {
     private final RatingHistoryMapper ratingHistoryMapper;
 
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
+
         Page<Player> page = playerRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
-        // Map to DTOs and enrich with ratings
-        Page<PlayerDto> dtoPage = page.map(player -> {
-            PlayerDto dto = playerMapper.toDto(player);
-            dto.setSportRatings(playerSportRatingRepository.findByPlayerId(player.getId())
-                    .stream()
-                    .map(rating -> {
-                        PlayerSportRatingDto dtoRating = new PlayerSportRatingDto();
-                        dtoRating.setId(rating.getId());
-                        dtoRating.setPlayerId(rating.getPlayerId());
-                        dtoRating.setSportId(rating.getSportId());
-                        dtoRating.setFormat(rating.getFormat());
-                        dtoRating.setRateScore(rating.getRateScore());
-                        dtoRating.setRateBand(rating.getRateBand());
-                        dtoRating.setProvisional(rating.getProvisional());
-                        dtoRating.setCreateTime(rating.getCreateTime());
-                        dtoRating.setUpdateTime(rating.getUpdateTime());
-                        return dtoRating;
-                    })
-                    .collect(java.util.stream.Collectors.toList()));
-            return dto;
-        });
-        return PageUtil.toPage(dtoPage);
+//        Page<PlayerDto> dtoPage = page.map(player -> {
+//            PlayerDto dto = playerMapper.toDto(player);
+////            dto.setPlayerSportRating(playerSportRatingRepository.findByPlayerId(player.getId())
+////                    .stream()
+////                    .map(rating -> {
+////                        PlayerSportRatingDto dtoRating = new PlayerSportRatingDto();
+////                        dtoRating.setId(rating.getId());
+////                        dtoRating.setPlayerId(rating.getPlayer().getId());
+////                        dtoRating.setSportId(rating.getSportId());
+////                        dtoRating.setFormat(rating.getFormat());
+////                        dtoRating.setRateScore(rating.getRateScore());
+////                        dtoRating.setRateBand(rating.getRateBand());
+////                        dtoRating.setProvisional(rating.getProvisional());
+////                        dtoRating.setCreateTime(rating.getCreateTime());
+////                        dtoRating.setUpdateTime(rating.getUpdateTime());
+////                        return dtoRating;
+////                    })
+////                    .collect(java.util.stream.Collectors.toList()));
+//            return dto;
+        return PageUtil.toPage(page.map(playerMapper::toDto));
     }
 
     public List<PlayerDto> queryAll(PlayerQueryCriteria criteria) {
