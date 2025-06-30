@@ -19,11 +19,12 @@ public class PlayerSportRating implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long playerId;
+    @JoinColumn(name = "player_id")
+    @ManyToOne
+    private Player player;
 
-    @Column(nullable = false)
-    private String sport;
+    @Column(name = "sport_id")
+    private Long sportId;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

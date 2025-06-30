@@ -1,7 +1,6 @@
 package com.srr.player;
 
 import com.srr.enumeration.Format;
-import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.player.service.PlayerSportRatingService;
 import io.swagger.annotations.Api;
@@ -40,17 +39,4 @@ public class PlayerSportRatingController {
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
     }
 
-    private PlayerSportRatingDto toDto(PlayerSportRating entity) {
-        PlayerSportRatingDto dto = new PlayerSportRatingDto();
-        dto.setId(entity.getId());
-        dto.setPlayerId(entity.getPlayerId());
-        dto.setSport(entity.getSport());
-        dto.setFormat(entity.getFormat());
-        dto.setRateScore(entity.getRateScore());
-        dto.setRateBand(entity.getRateBand());
-        dto.setProvisional(entity.getProvisional());
-        dto.setCreateTime(entity.getCreateTime());
-        dto.setUpdateTime(entity.getUpdateTime());
-        return dto;
-    }
 }

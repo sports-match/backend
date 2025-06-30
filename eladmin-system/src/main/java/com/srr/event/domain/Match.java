@@ -52,4 +52,8 @@ public class Match implements Serializable {
     @Column(name = "match_order")
     @ApiModelProperty(value = "Order in which this match should be played")
     private int matchOrder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private MatchStatus status = MatchStatus.SCHEDULED;
 }

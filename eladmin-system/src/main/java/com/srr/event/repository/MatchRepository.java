@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -34,14 +35,17 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
     @Query(value = "DELETE FROM `event_match` where match_group_id in (select id from match_group where event_id = 1)", nativeQuery = true)
     void deleteByMatchGroupEventId(@Param("eventId") Long eventId);
 
-    /**
-     * Find all matches for a specific match group, ordered by match order
-     *
-     * @param matchGroupId ID of the match group
-     * @return List of ordered matches
-     */
-    @Query("SELECT m FROM Match m WHERE m.matchGroup.id = :matchGroupId ORDER BY m.matchOrder ASC")
-    List<Match> findByMatchGroupIdOrderByMatchOrder(@Param("matchGroupId") Long matchGroupId);
+    @Query(value = """
+            SELECT *
+            FROM event_match em
+                     LEFT JOIN team ta ON em.team_a_id = ta.id
+                     LEFT JOIN team tb ON em.team_b_id = tb.id
+                     LEFT JOIN team_player tpa ON ta.id = tpa.team_id
+                     LEFT JOIN team_player tpb ON tb.id = tpb.team_id
+            WHERE tpa.player_id = :playerId
+               OR tpb.player_id = :playerId
+            """, nativeQuery = true)
+    Match getByPlayerId(@Param("playerId") Long playerId);
 
     /**
      * Find all matches where the specified teams are either team A or team B
@@ -55,8 +59,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
 
     /**
      * Find all matches for a specific match group
-     *
-     * @param matchGroupId ID of the match group
+     * @param matchGroupId The match group ID
      * @return List of matches
      */
     List<Match> findAllByMatchGroupId(Long matchGroupId);
@@ -76,4 +79,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
      * @return List of matches for the event.
      */
     List<Match> findByMatchGroupEventId(Long eventId);
+
+    @Query("SELECT m FROM Match m WHERE m.matchGroup.event.id = :eventId AND (m.teamA.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId) OR m.teamB.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId))")
+    List<Match> findByEventIdAndPlayerId(Long eventId, Long playerId);
 }

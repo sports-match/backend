@@ -6,5 +6,6 @@ public enum EventStatus {
     IN_PROGRESS,
     CLOSED,
     PUBLISHED,
-    DELETED
+    DELETED,
+    COMPLETED
 }
