@@ -1,0 +1,11 @@
+CREATE TABLE player_sport_rating (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    player_id BIGINT NOT NULL,
+    sport VARCHAR(50) NOT NULL,
+    format VARCHAR(20) NOT NULL,
+    rate_score DOUBLE,
+    rate_band VARCHAR(20),
+    provisional BOOLEAN DEFAULT TRUE,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

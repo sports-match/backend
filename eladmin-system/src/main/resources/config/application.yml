@@ -1,0 +1,77 @@
+server:
+  port: 8000
+  http2:
+    # Enable HTTP/2 support to improve transmission efficiency
+    enabled: true
+  compression:
+    # Enable GZIP compression to reduce data transmission
+    enabled: true
+    # MIME types to compress
+    mime-types: text/html, text/xml, text/plain, application/json
+    # Minimum response size for compression (bytes)
+
+spring:
+  freemarker:
+    check-template-location: false
+  profiles:
+    # Active environment. If you need quartz distributed support, change active: dev,quartz
+    active: ${PROFILE:dev}
+  data:
+    redis:
+      repositories:
+        enabled: false
+#  pid:
+#    file: /specify/location/eladmin.pid
+
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  redis:
+    # Database index
+    database: ${REDIS_DB:0}
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PWD:}
+    # Connection timeout
+    timeout: 5000
+    # Connection pool configuration
+    lettuce:
+      pool:
+        # Maximum number of connections in the pool
+        max-active: 30
+        # Maximum blocking wait time in the pool (ms), negative means no limit
+        max-wait: -1
+        # Maximum idle connections in the pool
+        max-idle: 20
+        # Minimum idle connections in the pool
+        min-idle: 1
+
+task:
+  pool:
+    # Core thread pool size
+    core-pool-size: 10
+    # Maximum number of threads
+    max-pool-size: 30
+    # Keep alive time
+    keep-alive-seconds: 60
+    # Queue capacity
+    queue-capacity: 50
+
+# S3 Cloud
+s3:
+  # File size /M
+  max-size: 15
+
+# Email verification code validity time/seconds
+code:
+  expiration: 300
+
+# Password encrypted transmission, frontend public key encryption, backend private key decryption
+rsa:
+  private_key: MIIBUwIBADANBgkqhkiG9w0BAQEFAASCAT0wggE5AgEAAkEA0vfvyTdGJkdbHkB8mp0f3FE0GYP3AYPaJF7jUd1M0XxFSE2ceK3k2kw20YvQ09NJKk+OMjWQl9WitG9pB6tSCQIDAQABAkA2SimBrWC2/wvauBuYqjCFwLvYiRYqZKThUS3MZlebXJiLB+Ue/gUifAAKIg1avttUZsHBHrop4qfJCwAI0+YRAiEA+W3NK/RaXtnRqmoUUkb59zsZUBLpvZgQPfj1MhyHDz0CIQDYhsAhPJ3mgS64NbUZmGWuuNKp5coY2GIj/zYDMJp6vQIgUueLFXv/eZ1ekgz2Oi67MNCk5jeTF2BurZqNLR3MSmUCIFT3Q6uHMtsB9Eha4u7hS31tj1UWE+D+ADzp59MGnoftAiBeHT7gDMuqeJHPL4b+kC+gzV4FGTfhR9q3tTbklZkD2A==

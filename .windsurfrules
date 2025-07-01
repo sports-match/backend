@@ -1,0 +1,5 @@
+Analyst the whole codebase to understand the structure of the project.
+Do not add license headers to the codebase.
+Run the project use mvnw instead of mvn.
+Always compile the project after making changes.
+Always kill the process that is running on port 8000 after running sping-boot:run to test.
