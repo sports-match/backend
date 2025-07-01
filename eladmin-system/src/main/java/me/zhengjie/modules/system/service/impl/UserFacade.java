@@ -37,6 +37,12 @@ public class UserFacade {
     private final VerifyService verifyService;
 
 
+    /**
+     * Create user in a single transaction
+     *
+     * @param registerDto The registration information
+     * @return ExecutionResult
+     */
     @Transactional
     public ExecutionResult createUserTransactional(UserRegisterDto registerDto) {
         final var createdUser = userService.create(registerDto);
@@ -44,6 +50,12 @@ public class UserFacade {
         return ExecutionResult.of(createdUser.getId(), null);
     }
 
+    /**
+     * Send email to user
+     *
+     * @param email The email of the user
+     * @return EmailConfig
+     */
     public EmailConfig sendEmail(String email) {
         EmailVo emailVo = verifyService.sendEmail(email, REGISTER_KEY_PREFIX);
         final var config = emailService.find();
