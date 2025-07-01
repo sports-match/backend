@@ -28,7 +28,6 @@ import me.zhengjie.modules.system.service.VerifyService;
 import me.zhengjie.utils.RedisUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 
@@ -40,12 +39,11 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class VerifyServiceImpl implements VerifyService {
 
+    private final RedisUtils redisUtils;
     @Value("${code.expiration}")
     private Long expiration;
-    private final RedisUtils redisUtils;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public EmailVo sendEmail(String email, String key) {
         EmailVo emailVo;
         String content;
