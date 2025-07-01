@@ -26,9 +26,9 @@ public class UserRegisterDto implements Serializable {
     private String email;
     
     @NotBlank(message = "Phone number cannot be blank")
-    @Pattern(regexp = "^[0-9]{10,11}$", message = "Invalid phone number format")
+    @Pattern(regexp = "^[0-9]{09,11}$", message = "Invalid phone number format")
     private String phone;
-    
+
     @NotNull(message = "User type cannot be blank")
     private UserType userType;
     

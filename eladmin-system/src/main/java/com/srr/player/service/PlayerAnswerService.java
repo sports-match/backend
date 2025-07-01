@@ -6,6 +6,7 @@ import com.srr.player.domain.PlayerAnswer;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.domain.Question;
 import com.srr.player.dto.PlayerAnswerDto;
+import com.srr.player.dto.PlayerSelfAssessmentRequest;
 import com.srr.player.repository.PlayerAnswerRepository;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
@@ -65,7 +66,8 @@ public class PlayerAnswerService {
 
 
     // Overloaded method to support sport/format from controller
-    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, Long sportId, Format format) {
+    public List<PlayerAnswerDto> submitSelfAssessment(PlayerSelfAssessmentRequest request, Format format) {
+        final var answers = request.getAnswers();
         if (answers.isEmpty()) {
             throw new BadRequestException("No answers provided");
         }
@@ -89,10 +91,14 @@ public class PlayerAnswerService {
             answer.setAnswerValue(answerDto.getAnswerValue());
             savedAnswers.add(playerAnswerRepository.save(answer));
         }
-        // Query questions by sportId and format
+        var sportId = request.getSportId();
+        if (sportId == null) {
+            final var sport = sportService.getBadminton();
+            sportId = sport.getId();
+        }
+
         List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, format);
         List<Long> questionIds = questions.stream().map(Question::getId).toList();
-        // Only consider answers for these questions
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
                 .filter(ans -> questionIds.contains(ans.getQuestionId()))
                 .collect(Collectors.toList());
@@ -158,8 +164,6 @@ public class PlayerAnswerService {
 
     public boolean hasCompletedSelfAssessment(Long playerId) {
         long count = playerAnswerRepository.countByPlayerId(playerId);
-        // Consider assessment complete if at least one answer exists
-        // In a real implementation, you might want to check if all required questions are answered
         return count > 0;
     }
 
@@ -187,7 +191,6 @@ public class PlayerAnswerService {
         return dto;
     }
 
-    // New updatePlayerSportRating overload to accept relevant answers
     private void updatePlayerSportRating(Long playerId, Long sportId, Format format, List<PlayerAnswer> answers) {
         if (answers.isEmpty()) {
             return;
