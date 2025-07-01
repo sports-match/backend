@@ -57,10 +57,18 @@ public class UserFacade {
      * @return EmailConfig
      */
     public EmailConfig sendEmail(String email) {
-        EmailVo emailVo = verifyService.sendEmail(email, REGISTER_KEY_PREFIX);
-        final var config = emailService.find();
-        emailService.send(emailVo, config);
-        return config;
+        try {
+            userService.findByEmail(email);
+            log.info("Sending verification email to {}", email);
+            EmailVo emailVo = verifyService.sendEmail(email, REGISTER_KEY_PREFIX);
+            final var config = emailService.find();
+            emailService.send(emailVo, config);
+            log.info("Send verification email completed successfully.");
+            return config;
+        } catch (Exception e) {
+            log.error("Send verification email failed.", e);
+            throw e;
+        }
     }
 
     /**

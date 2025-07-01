@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @Api(tags = "系统：系统授权接口")
 public class AuthController {
     private static final String REGISTER_KEY_PREFIX = "register:email:";
-    
+
     private final SecurityProperties properties;
     private final RedisUtils redisUtils;
     private final OnlineUserService onlineUserService;
@@ -188,6 +188,7 @@ public class AuthController {
     public ResponseEntity<Object> register(@Valid @RequestBody UserRegisterDto registerDto) {
         final ExecutionResult user = userFacade.createUserTransactional(registerDto);
         final Long newUserId = user.id();
+        log.info("New user registered: {}", newUserId);
         userFacade.sendEmail(registerDto.getEmail());
 
         Map<String, Object> response = new HashMap<>();
