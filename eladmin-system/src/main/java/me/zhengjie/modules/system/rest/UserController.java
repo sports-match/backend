@@ -102,7 +102,7 @@ public class UserController {
         checkLevel(resources);
         // 默认密码 123456
         resources.setPassword(passwordEncoder.encode("123456"));
-        userService.create(resources);
+        userService.createUser(resources);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
