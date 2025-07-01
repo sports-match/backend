@@ -21,10 +21,9 @@ public class EnableCheckinScheduler {
     // Not use Quartz for now
     @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
     public void allowCheckin() {
-        log.info("Checkin job");
         // 1. Transition from PUBLISHED to CHECK_IN when check-in window opens
         var eventsToOpenCheckIn = eventRepository.findAllByStatusAndCheckInStartIsNotNullAndCheckInStartLessThan(
-            EventStatus.PUBLISHED, Timestamp.valueOf(LocalDateTime.now())
+                EventStatus.PUBLISHED, Timestamp.valueOf(LocalDateTime.now())
         );
         if (!eventsToOpenCheckIn.isEmpty()) {
             eventsToOpenCheckIn.forEach(event -> {
@@ -35,7 +34,7 @@ public class EnableCheckinScheduler {
 
         // 2. Transition from CHECK_IN to IN_PROGRESS when event starts
         var eventsToStart = eventRepository.findAllByStatusAndEventTimeLessThan(
-            EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now())
+                EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now())
         );
         if (!eventsToStart.isEmpty()) {
             eventsToStart.forEach(event -> {
