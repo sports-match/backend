@@ -22,7 +22,9 @@ import me.zhengjie.exception.EntityExistException;
 import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.modules.security.service.OnlineUserService;
 import me.zhengjie.modules.security.service.UserCacheManager;
+import me.zhengjie.modules.security.service.dto.UserRegisterDto;
 import me.zhengjie.modules.system.domain.User;
+import me.zhengjie.modules.system.repository.RoleRepository;
 import me.zhengjie.modules.system.repository.UserRepository;
 import me.zhengjie.modules.system.service.UserService;
 import me.zhengjie.modules.system.service.dto.RoleSmallDto;
@@ -32,6 +34,7 @@ import me.zhengjie.modules.system.service.mapstruct.UserMapper;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,6 +61,8 @@ public class UserServiceImpl implements UserService {
     private final RedisUtils redisUtils;
     private final UserCacheManager userCacheManager;
     private final OnlineUserService onlineUserService;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
     @Override
     public PageResult<UserDto> queryAll(UserQueryCriteria criteria, Pageable pageable) {
@@ -70,6 +75,7 @@ public class UserServiceImpl implements UserService {
         List<User> users = userRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder));
         return userMapper.toDto(users);
     }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -84,20 +90,46 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(user);
     }
 
+    private User createUserEntity(UserRegisterDto registerDto) {
+        User user = new User();
+        user.setUsername(registerDto.getUsername());
+        user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
+        user.setNickName(registerDto.getNickName());
+        user.setEmail(registerDto.getEmail());
+        user.setPhone(registerDto.getPhone());
+        user.setEnabled(false);
+        user.setEmailVerified(false);
+        user.setUserType(registerDto.getUserType());
+        return user;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ExecutionResult create(User resources) {
-        if (userRepository.findByUsername(resources.getUsername()) != null) {
-            throw new EntityExistException(User.class, "username", resources.getUsername());
+    public User create(UserRegisterDto registerDto) {
+        final User userResource = createUserEntity(registerDto);
+        return createUser(userResource);
+    }
+
+
+    public User createUser(User user) {
+        final var userData = userRepository.findByUsernameOrEmailOrPhone(user.getUsername(),
+                user.getEmail(), user.getPhone());
+
+        if (userData == null) {
+            return userRepository.save(user);
         }
-        if (userRepository.findByEmail(resources.getEmail()) != null) {
-            throw new EntityExistException(User.class, "email", resources.getEmail());
+
+        if (userData.getUsername().equals(user.getUsername())) {
+            throw new EntityExistException(User.class, "username", user.getUsername());
         }
-        if (userRepository.findByPhone(resources.getPhone()) != null) {
-            throw new EntityExistException(User.class, "phone", resources.getPhone());
+        if (userData.getEmail().equals(user.getEmail())) {
+            throw new EntityExistException(User.class, "email", user.getEmail());
         }
-        User savedUser = userRepository.save(resources);
-        return new ExecutionResult(savedUser.getId(), null);
+        if (userData.getPhone().equals(user.getPhone())) {
+            throw new EntityExistException(User.class, "phone", user.getPhone());
+        }
+
+        return userData;
     }
 
     @Override
@@ -125,7 +157,7 @@ public class UserServiceImpl implements UserService {
             redisUtils.del(CacheKey.ROLE_USER + resources.getId());
         }
         // If the user is disabled, clear the user's login information
-        if(!resources.getEnabled()){
+        if (!resources.getEnabled()) {
             onlineUserService.kickOutForUsername(resources.getUsername());
         }
         user.setUsername(resources.getUsername());
@@ -162,7 +194,7 @@ public class UserServiceImpl implements UserService {
         Map<String, Object> result = new HashMap<>();
         result.put("count", ids.size());
         result.put("ids", ids);
-        
+
         for (Long id : ids) {
             // Clear cache
             UserDto user = findById(id);
@@ -199,7 +231,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new EntityNotFoundException(User.class, "username", username);
         }
-        
+
         userRepository.updatePass(username, pass, new Date());
         flushCache(username);
         return new ExecutionResult(user.getId(), null);
@@ -211,7 +243,7 @@ public class UserServiceImpl implements UserService {
         Map<String, Object> result = new HashMap<>();
         result.put("count", ids.size());
         result.put("ids", ids);
-        
+
         userRepository.resetPwd(ids, pwd);
         return new ExecutionResult(null, result);
     }
@@ -224,7 +256,7 @@ public class UserServiceImpl implements UserService {
         // Validate file upload format
         String image = "gif jpg png jpeg";
         String fileType = FileUtil.getExtensionName(multipartFile.getOriginalFilename());
-        if(fileType != null && !image.contains(fileType)){
+        if (fileType != null && !image.contains(fileType)) {
             throw new BadRequestException("File format error! Only supports " + image + " format");
         }
         User user = userRepository.findByUsername(SecurityUtils.getCurrentUsername());
@@ -260,14 +292,14 @@ public class UserServiceImpl implements UserService {
     public ExecutionResult updateEmailVerificationStatus(User user) {
         User existingUser = userRepository.findById(user.getId()).orElseGet(User::new);
         ValidationUtil.isNull(existingUser.getId(), "User", "id", user.getId());
-        
+
         existingUser.setEmailVerified(user.getEmailVerified());
         existingUser.setEnabled(user.getEnabled());
         userRepository.save(existingUser);
-        
+
         // Clear cache
         delCaches(existingUser.getId(), existingUser.getUsername());
-        
+
         return new ExecutionResult(existingUser.getId(), null);
     }
 

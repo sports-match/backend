@@ -1,4 +1,3 @@
-
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
@@ -20,10 +19,7 @@ import me.zhengjie.annotation.Log;
 import me.zhengjie.annotation.rest.AnonymousDeleteMapping;
 import me.zhengjie.annotation.rest.AnonymousGetMapping;
 import me.zhengjie.annotation.rest.AnonymousPostMapping;
-import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
-import me.zhengjie.exception.EntityExistException;
-import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.modules.security.config.CaptchaConfig;
 import me.zhengjie.modules.security.config.LoginProperties;
 import me.zhengjie.modules.security.config.SecurityProperties;
@@ -35,13 +31,10 @@ import me.zhengjie.modules.security.service.dto.AuthUserDto;
 import me.zhengjie.modules.security.service.dto.EmailVerificationDto;
 import me.zhengjie.modules.security.service.dto.JwtUserDto;
 import me.zhengjie.modules.security.service.dto.UserRegisterDto;
-import me.zhengjie.modules.security.service.enums.UserType;
-import me.zhengjie.modules.system.domain.Role;
 import me.zhengjie.modules.system.domain.User;
-import me.zhengjie.modules.system.repository.RoleRepository;
 import me.zhengjie.modules.system.service.UserService;
 import me.zhengjie.modules.system.service.VerifyService;
-import me.zhengjie.service.EmailService;
+import me.zhengjie.modules.system.service.impl.UserFacade;
 import me.zhengjie.utils.ExecutionResult;
 import me.zhengjie.utils.RedisUtils;
 import me.zhengjie.utils.SecurityUtils;
@@ -49,13 +42,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -69,6 +64,8 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 @Api(tags = "系统：系统授权接口")
 public class AuthController {
+    private static final String REGISTER_KEY_PREFIX = "register:email:";
+    
     private final SecurityProperties properties;
     private final RedisUtils redisUtils;
     private final OnlineUserService onlineUserService;
@@ -79,13 +76,10 @@ public class AuthController {
     private final UserDetailsServiceImpl userDetailsService;
     private final VerifyService verifyService;
     private final UserService userService;
-    private final EmailService emailService;
     private final PlayerService playerService;
     private final EventOrganizerService eventOrganizerService;
-    private final RoleRepository roleRepository;
     private final PlayerSportRatingRepository playerSportRatingRepository;
-
-    private final String REGISTER_KEY_PREFIX = "register:email:";
+    private final UserFacade userFacade;
     private final SportService sportService;
 
     @Log("login")
@@ -190,42 +184,12 @@ public class AuthController {
     }
 
     @ApiOperation("register user")
-    @Transactional
     @AnonymousPostMapping(value = "/register")
     public ResponseEntity<Object> register(@Valid @RequestBody UserRegisterDto registerDto) {
-        try {
-            // Check if user already exists
-            if (userService.findByName(registerDto.getUsername()) != null) {
-                throw new EntityExistException(User.class, "username", registerDto.getUsername());
-            }
+        final ExecutionResult user = userFacade.createUserTransactional(registerDto);
+        final Long newUserId = user.id();
+        userFacade.sendEmail(registerDto.getEmail());
 
-            // Check if email is already used
-            if (userService.findByEmail(registerDto.getEmail()) != null) {
-                throw new EntityExistException(User.class, "email", registerDto.getEmail());
-            }
-        } catch (EntityNotFoundException ignored) {
-
-        }
-        if (registerDto.getUserType() == null) {
-            throw new BadRequestException("User type cannot be null");
-        }
-
-        // Create new user
-        User user = new User();
-        user.setUsername(registerDto.getUsername());
-        user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
-        user.setNickName(registerDto.getNickName());
-        user.setEmail(registerDto.getEmail());
-        user.setPhone(registerDto.getPhone());
-        user.setEnabled(false); // User is disabled until email is verified
-        user.setEmailVerified(false);
-        user.setUserType(registerDto.getUserType()); // Save user type
-
-        ExecutionResult executionResult = userService.create(user);
-        Long newUserId = executionResult.id();
-        createUserTypeEntity(user);
-        // Send verification email
-        sendEmail(registerDto.getEmail());
         Map<String, Object> response = new HashMap<>();
         response.put("userId", newUserId);
         response.put("email", registerDto.getEmail());
@@ -253,10 +217,6 @@ public class AuthController {
         user.setEmailVerified(true);
         user.setEnabled(true);
         ExecutionResult result = userService.updateEmailVerificationStatus(user);
-
-        // Create the appropriate entity based on user type
-        // createUserTypeEntity(user);
-
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -274,120 +234,7 @@ public class AuthController {
             throw new BadRequestException("邮箱已验证");
         }
 
-        final var emailVo = sendEmail(email);
-
+        final var emailVo = userFacade.sendEmail(email);
         return new ResponseEntity<>(emailVo, HttpStatus.OK);
-    }
-
-    private EmailVo sendEmail(String email) {
-        // Send verification email
-        EmailVo emailVo = verifyService.sendEmail(email, REGISTER_KEY_PREFIX);
-
-        final var config = emailService.find();
-
-        // Send email
-        emailService.send(emailVo, config);
-        return emailVo;
-    }
-
-    /**
-     * Creates the appropriate entity based on the user's type
-     *
-     * @param user The user to create entity for
-     */
-    private void createUserTypeEntity(User user) {
-        // Get user type from user entity
-        UserType userType = user.getUserType();
-
-        try {
-            switch (userType) {
-                case PLAYER:
-                    // Assign Player role to the user
-                    assignRoleToUser(user, "Player");
-                    createPlayerEntity(user);
-                    break;
-                case ORGANIZER:
-                    // Assign Organizer role to the user
-                    assignRoleToUser(user, "Organizer");
-                    createEventOrganizerEntity(user);
-                    break;
-                case ADMIN:
-                    // No entity to create for ADMIN
-                    break;
-            }
-        } catch (IllegalArgumentException e) {
-            // Invalid user type, log and ignore
-            log.error("Invalid user type: {}", userType, e);
-        }
-    }
-
-    /**
-     * Assigns a role to a user by role name
-     *
-     * @param user     The user to assign the role to
-     * @param roleName The name of the role to assign
-     */
-    private void assignRoleToUser(User user, String roleName) {
-        try {
-            final Role role = roleRepository.findByName(roleName);
-
-            if (role != null) {
-                // Add the role to user's roles
-                Set<Role> roles = user.getRoles();
-                if (roles == null) {
-                    roles = new HashSet<>();
-                }
-
-                // Check if user already has this role
-                boolean alreadyHasRole = roles.stream()
-                        .anyMatch(r -> r.getId().equals(role.getId()));
-
-                if (!alreadyHasRole) {
-                    roles.add(role);
-                    user.setRoles(roles);
-                    userService.update(user);
-                    log.info("Assigned role '{}' to user: {}", role.getName(), user.getUsername());
-                } else {
-                    log.debug("User '{}' already has role '{}'", user.getUsername(), role.getName());
-                }
-            } else {
-                log.warn("Role '{}' not found", roleName);
-            }
-        } catch (Exception e) {
-            log.error("Failed to assign role '{}' to user: {}", roleName, user.getUsername(), e);
-        }
-    }
-
-    /**
-     * Creates a Player entity for the given user
-     *
-     * @param user The user to create a Player for
-     */
-    private void createPlayerEntity(User user) {
-        // Create player entity
-        Player player = new Player();
-        player.setName(user.getNickName());
-        player.setUserId(user.getId());
-        player.setDescription("Player created upon registration");
-
-        // Save player - this will trigger role assignment via UserRoleSyncService
-        playerService.create(player);
-        log.info("Created player for user: {}", user.getUsername());
-    }
-
-    /**
-     * Creates an EventOrganizer entity for the given user
-     *
-     * @param user The user to create an EventOrganizer for
-     */
-    private void createEventOrganizerEntity(User user) {
-        // Create new event organizer
-        EventOrganizer organizer = new EventOrganizer();
-        organizer.setUserId(user.getId());
-        organizer.setDescription("Event organizer created upon registration");
-
-        // Save organizer - this will trigger role assignment via UserRoleSyncService
-        eventOrganizerService.create(organizer);
-        log.info("Created event organizer for user: {}", user.getUsername());
     }
 }
