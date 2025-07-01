@@ -62,7 +62,7 @@ public class PlayerAnswerController {
             @Validated @RequestBody PlayerSelfAssessmentRequest request) {
         Format format = (request.getFormat() == null) ? Format.DOUBLE : request.getFormat();
         return new ResponseEntity<>(
-                playerAnswerService.submitSelfAssessment(request.getAnswers(), format),
+                playerAnswerService.submitSelfAssessment(request, format),
                 HttpStatus.CREATED);
     }
 

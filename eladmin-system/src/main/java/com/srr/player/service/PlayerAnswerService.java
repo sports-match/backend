@@ -6,6 +6,7 @@ import com.srr.player.domain.PlayerAnswer;
 import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.domain.Question;
 import com.srr.player.dto.PlayerAnswerDto;
+import com.srr.player.dto.PlayerSelfAssessmentRequest;
 import com.srr.player.repository.PlayerAnswerRepository;
 import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
@@ -65,7 +66,8 @@ public class PlayerAnswerService {
 
 
     // Overloaded method to support sport/format from controller
-    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, Format format) {
+    public List<PlayerAnswerDto> submitSelfAssessment(PlayerSelfAssessmentRequest request, Format format) {
+        final var answers = request.getAnswers();
         if (answers.isEmpty()) {
             throw new BadRequestException("No answers provided");
         }
@@ -89,10 +91,12 @@ public class PlayerAnswerService {
             answer.setAnswerValue(answerDto.getAnswerValue());
             savedAnswers.add(playerAnswerRepository.save(answer));
         }
-        final var sport = sportService.getBadminton();
-        final var sportId = sport.getId();
+        var sportId = request.getSportId();
+        if (sportId == null) {
+            final var sport = sportService.getBadminton();
+            sportId = sport.getId();
+        }
 
-        // Query questions by sportId and format
         List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, format);
         List<Long> questionIds = questions.stream().map(Question::getId).toList();
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
