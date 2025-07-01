@@ -65,7 +65,7 @@ public class PlayerAnswerService {
 
 
     // Overloaded method to support sport/format from controller
-    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, Long sportId, Format format) {
+    public List<PlayerAnswerDto> submitSelfAssessment(List<PlayerAnswerDto> answers, Format format) {
         if (answers.isEmpty()) {
             throw new BadRequestException("No answers provided");
         }
@@ -89,10 +89,12 @@ public class PlayerAnswerService {
             answer.setAnswerValue(answerDto.getAnswerValue());
             savedAnswers.add(playerAnswerRepository.save(answer));
         }
+        final var sport = sportService.getBadminton();
+        final var sportId = sport.getId();
+
         // Query questions by sportId and format
         List<Question> questions = questionRepository.findBySportIdAndFormatOrderByCategoryAndOrderIndex(sportId, format);
         List<Long> questionIds = questions.stream().map(Question::getId).toList();
-        // Only consider answers for these questions
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
                 .filter(ans -> questionIds.contains(ans.getQuestionId()))
                 .collect(Collectors.toList());
@@ -158,8 +160,6 @@ public class PlayerAnswerService {
 
     public boolean hasCompletedSelfAssessment(Long playerId) {
         long count = playerAnswerRepository.countByPlayerId(playerId);
-        // Consider assessment complete if at least one answer exists
-        // In a real implementation, you might want to check if all required questions are answered
         return count > 0;
     }
 
@@ -187,7 +187,6 @@ public class PlayerAnswerService {
         return dto;
     }
 
-    // New updatePlayerSportRating overload to accept relevant answers
     private void updatePlayerSportRating(Long playerId, Long sportId, Format format, List<PlayerAnswer> answers) {
         if (answers.isEmpty()) {
             return;
