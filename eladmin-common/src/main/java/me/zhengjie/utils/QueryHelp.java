@@ -76,10 +76,11 @@ public class QueryHelp {
                         String[] blurrys = blurry.split(",");
                         List<Predicate> orPredicate = new ArrayList<>();
                         for (String s : blurrys) {
-                            orPredicate.add(cb.like(root.get(s).as(String.class), "%" + val.toString() + "%"));
+                            orPredicate.add(cb.like(root.get(s.trim()).as(String.class), "%" + val.toString() + "%"));
                         }
-                        Predicate[] p = new Predicate[orPredicate.size()];
-                        list.add(cb.or(orPredicate.toArray(p)));
+                        if (!orPredicate.isEmpty()) {
+                            list.add(cb.or(orPredicate.toArray(new Predicate[0])));
+                        }
                         continue;
                     }
                     if (ObjectUtil.isNotEmpty(joinName)) {
