@@ -7,12 +7,9 @@ import com.srr.event.service.EventService;
 import com.srr.event.service.MatchGenerationService;
 import com.srr.event.service.MatchGroupService;
 import com.srr.event.service.MatchService;
-import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.repository.PlayerRepository;
-import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.TeamPlayerService;
-import com.srr.player.service.TeamService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +27,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,10 +45,8 @@ public class EventController {
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupService matchGroupService;
     private final MatchGenerationService matchGenerationService;
-    private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
     private final MatchService matchService;
-    private final TeamService teamService;
 
     @GetMapping
     @ApiOperation("Query event")
@@ -62,6 +56,10 @@ public class EventController {
         String token = SecurityUtils.getToken();
         if (token != null && !token.isBlank() && SecurityContextUtils.currentUserIsNotNull()) {
             var user = SecurityContextUtils.getCurrentUser();
+            if (user == null) {
+                throw new RuntimeException("Current user is not found.");
+            }
+
             var player = playerRepository.findByUserId(user.getId());
             if (player != null && UserType.PLAYER.equals(user.getUserType())) {
                 for (var event : result.getContent()) {

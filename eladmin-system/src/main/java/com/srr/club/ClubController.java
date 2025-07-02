@@ -19,9 +19,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
-* @author Chanheng
-* @date 2025-05-18
-**/
+ * @author Chanheng
+ * @date 2025-05-18
+ **/
 @RestController
 @RequiredArgsConstructor
 @Api(tags = "Club Management")
@@ -33,9 +33,9 @@ public class ClubController {
 
     @GetMapping
     @ApiOperation("Query clubs")
-    @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<PageResult<ClubDto>> queryClub(ClubQueryCriteria criteria, Pageable pageable){
-        return new ResponseEntity<>(clubService.queryAll(criteria,pageable),HttpStatus.OK);
+    @PreAuthorize("hasAnyAuthority('Admin', 'Organizer')")
+    public ResponseEntity<PageResult<ClubDto>> queryClub(ClubQueryCriteria criteria, Pageable pageable) {
+        return new ResponseEntity<>(clubService.queryAll(criteria, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -48,8 +48,7 @@ public class ClubController {
     @PostMapping
     @Log("Add clubs")
     @ApiOperation("Add clubs")
-    @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<Object> createClub(@Validated @RequestBody Club resources){
+    public ResponseEntity<Object> createClub(@Validated @RequestBody Club resources) {
         ExecutionResult result = clubService.create(resources);
         return new ResponseEntity<>(result.toMap(), HttpStatus.CREATED);
     }
@@ -58,7 +57,7 @@ public class ClubController {
     @Log("Modify clubs")
     @ApiOperation("Modify clubs")
     @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<Object> updateClub(@Validated @RequestBody Club resources){
+    public ResponseEntity<Object> updateClub(@Validated @RequestBody Club resources) {
         ExecutionResult result = clubService.update(resources);
         return new ResponseEntity<>(result.toMap(), HttpStatus.OK);
     }

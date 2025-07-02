@@ -28,8 +28,11 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Query {
 
+    String dateFormat() default "yyyy-MM-dd";
+
     // Dong ZhaoYang 2017/8/7 Property name of the basic object
     String propName() default "";
+
     // Dong ZhaoYang 2017/8/7 Query type
     Type type() default Type.EQUAL;
 
@@ -50,7 +53,8 @@ public @interface Query {
 
     enum Type {
         // jie 2019/6/4 Equal
-        EQUAL
+        EQUAL,
+        EQUAL_DATE
         // Dong ZhaoYang 2017/8/7 Greater than or equal to
         , GREATER_THAN
         // Dong ZhaoYang 2017/8/7 Less than or equal to
@@ -68,13 +72,13 @@ public @interface Query {
         // Not contains
         , NOT_IN
         // Not equal
-        ,NOT_EQUAL
+        , NOT_EQUAL
         // between
-        ,BETWEEN
+        , BETWEEN
         // Not null
-        ,NOT_NULL
+        , NOT_NULL
         // Is null
-        ,IS_NULL,
+        , IS_NULL,
         // Aborn Jiang 2022/06/01, Corresponds to SQL: SELECT * FROM table WHERE FIND_IN_SET('querytag', table.tags);
         FIND_IN_SET
     }
@@ -84,7 +88,9 @@ public @interface Query {
      * Suitable for simple join queries. For complex cases, please customize this annotation or use SQL queries.
      */
     enum Join {
-        /** jie 2019-6-4 13:18:30 */
+        /**
+         * jie 2019-6-4 13:18:30
+         */
         LEFT, RIGHT, INNER
     }
 
