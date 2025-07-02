@@ -35,6 +35,15 @@ import java.util.Set;
  * @date 2018-11-23
  */
 public interface UserService {
+
+    /**
+     * Verify email and validate whether the email has been verified.
+     *
+     * @param email User email for verification
+     * @return User
+     */
+    User verifyEmail(String email);
+
     /**
      * 根据ID查询
      *

@@ -28,6 +28,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Zheng Jie
@@ -45,22 +46,22 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public JwtUserDto loadUserByUsername(String username) {
         JwtUserDto jwtUserDto = userCacheManager.getUserCache(username);
-        if(jwtUserDto == null){
+        if (jwtUserDto == null) {
             UserDto user = userService.getLoginData(username);
+
             if (user == null) {
-                throw new BadRequestException("用户不存在");
-            } else {
-                if (!user.getEnabled()) {
-                    throw new BadRequestException("账号未激活！");
-                }
-                // 获取用户的权限
-                List<AuthorityDto> authorities = roleService.buildPermissions(username);
-                // 初始化JwtUserDto
-                jwtUserDto = new JwtUserDto(user, dataService.getDeptIds(user), authorities);
-                // 添加缓存数据
-                userCacheManager.addUserCache(username, jwtUserDto);
+                throw new BadRequestException("Invalid username or password");
             }
+
+            if (!user.getEnabled()) {
+                throw new BadRequestException("Account is not activated");
+            }
+
+            List<AuthorityDto> authorities = roleService.buildPermissions(username);
+            jwtUserDto = new JwtUserDto(user, dataService.getDeptIds(user), authorities);
+            userCacheManager.addUserCache(username, jwtUserDto);
+
         }
-        return jwtUserDto;
+        return Objects.requireNonNull(jwtUserDto);
     }
 }
