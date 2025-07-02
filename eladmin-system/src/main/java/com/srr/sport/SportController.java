@@ -19,9 +19,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
-* @author Chanheng
-* @date 2025-05-17
-**/
+ * @author Chanheng
+ * @date 2025-05-17
+ **/
 @RestController
 @RequiredArgsConstructor
 @Api(tags = "Sport Management")
@@ -38,9 +38,9 @@ public class SportController {
 
     @GetMapping
     @ApiOperation("Query sport")
-    @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<PageResult<SportDto>> querySport(SportQueryCriteria criteria, Pageable pageable){
-        return new ResponseEntity<>(sportService.queryAll(criteria,pageable),HttpStatus.OK);
+    @PreAuthorize("hasAnyAuthority('Admin', 'Organizer')")
+    public ResponseEntity<PageResult<SportDto>> querySport(SportQueryCriteria criteria, Pageable pageable) {
+        return new ResponseEntity<>(sportService.queryAll(criteria, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -54,7 +54,7 @@ public class SportController {
     @Log("Add sport")
     @ApiOperation("Add sport")
     @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<Object> createSport(@Validated @RequestBody Sport resources){
+    public ResponseEntity<Object> createSport(@Validated @RequestBody Sport resources) {
         ExecutionResult result = sportService.create(resources);
         return new ResponseEntity<>(result.toMap(), HttpStatus.CREATED);
     }
@@ -63,7 +63,7 @@ public class SportController {
     @Log("Modify sport")
     @ApiOperation("Modify sport")
     @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<Object> updateSport(@Validated @RequestBody Sport resources){
+    public ResponseEntity<Object> updateSport(@Validated @RequestBody Sport resources) {
         ExecutionResult result = sportService.update(resources);
         return new ResponseEntity<>(result.toMap(), HttpStatus.OK);
     }

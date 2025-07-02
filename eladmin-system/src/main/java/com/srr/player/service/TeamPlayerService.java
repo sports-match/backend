@@ -95,7 +95,7 @@ public class TeamPlayerService {
 
         return teamPlayerMapper.toDto(teamPlayer);
     }
-    
+
     /**
      * Check in TeamPlayer for event
      *
@@ -108,12 +108,12 @@ public class TeamPlayerService {
         TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
 
         if (teamPlayer == null) {
-            throw new EntityNotFoundException(TeamPlayer.class, "eventId/userId", eventId + "/" + currentUserId);
+            throw new BadRequestException("You haven't registered for this event.");
         }
 
         return checkIn(teamPlayer.getId());
     }
-    
+
     /**
      * Get TeamPlayer by event id
      *
@@ -127,10 +127,11 @@ public class TeamPlayerService {
                 .map(teamPlayerMapper::toDto)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Update team averageScore, updateTime, and checked-in/registered status based on current players.
      * If the team has no players, deletes the team.
+     *
      * @param team the team to update
      */
     public void updateTeamStateAndStatus(Team team) {
@@ -140,14 +141,14 @@ public class TeamPlayerService {
             return;
         }
         double avg = players.stream()
-            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(tp.getPlayer().getId(), team.getEvent().getSportId(), Format.DOUBLE))
-            .filter(java.util.Optional::isPresent)
-            .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
-            .average().orElse(0.0);
+                .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(tp.getPlayer().getId(), team.getEvent().getSportId(), Format.DOUBLE))
+                .filter(java.util.Optional::isPresent)
+                .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
+                .average().orElse(0.0);
         team.setAverageScore(avg);
         team.setUpdateTime(new java.sql.Timestamp(System.currentTimeMillis()));
         boolean allCheckedIn = players.stream()
-            .allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
+                .allMatch(tp -> tp.isCheckedIn() || tp.getStatus() == com.srr.enumeration.TeamPlayerStatus.CHECKED_IN);
         if (allCheckedIn && team.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
             team.setStatus(com.srr.enumeration.TeamStatus.CHECKED_IN);
         } else if (!allCheckedIn && team.getStatus() == com.srr.enumeration.TeamStatus.CHECKED_IN) {
@@ -189,8 +190,8 @@ public class TeamPlayerService {
     private boolean ensurePlayerInTargetTeam(Long eventId, Long joiningPlayerId, Long targetTeamId) {
         // Find the joining player's existing TeamPlayer for this event
         TeamPlayer joiningTeamPlayer = teamPlayerRepository.findByEventId(eventId).stream()
-            .filter(tp -> tp.getPlayer().getId().equals(joiningPlayerId))
-            .findFirst().orElse(null);
+                .filter(tp -> tp.getPlayer().getId().equals(joiningPlayerId))
+                .findFirst().orElse(null);
         if (joiningTeamPlayer == null) {
             return false; // player not in any team yet
         }
@@ -201,7 +202,7 @@ public class TeamPlayerService {
 
         // Prevent merge if target team is full
         Team targetTeam = teamRepository.findById(targetTeamId)
-            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
+                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
         if (targetTeam.getTeamPlayers().size() >= targetTeam.getTeamSize()) {
             throw new BadRequestException("Target team is already full.");
         }
@@ -220,7 +221,7 @@ public class TeamPlayerService {
 
         // Reload target team to ensure up-to-date teamPlayers
         targetTeam = teamRepository.findById(targetTeamId)
-            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
+                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
 
         // Update team timestamp
         targetTeam.setUpdateTime(new Timestamp(System.currentTimeMillis()));
@@ -229,10 +230,10 @@ public class TeamPlayerService {
 
         // Update averageScore for the team
         double avg = targetTeam.getTeamPlayers().stream()
-            .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(tp.getPlayer().getId(), event.getSportId(), Format.DOUBLE))
-            .filter(Optional::isPresent)
-            .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
-            .average().orElse(0.0);
+                .map(tp -> playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(tp.getPlayer().getId(), event.getSportId(), Format.DOUBLE))
+                .filter(Optional::isPresent)
+                .mapToDouble(opt -> opt.get().getRateScore() != null ? opt.get().getRateScore() : 0)
+                .average().orElse(0.0);
         targetTeam.setAverageScore(avg);
 
         // If all players are checked in, set team status to CHECKED_IN
@@ -256,7 +257,7 @@ public class TeamPlayerService {
     @Transactional
     public void withdrawTeam(Long teamId) {
         Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
+                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
         team.setStatus(TeamStatus.WITHDRAWN);
         teamRepository.save(team);
 

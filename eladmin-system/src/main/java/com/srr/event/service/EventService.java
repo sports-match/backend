@@ -1,5 +1,7 @@
 package com.srr.event.service;
 
+import com.srr.club.domain.Club;
+import com.srr.club.service.ClubService;
 import com.srr.enumeration.*;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
@@ -61,6 +63,7 @@ public class EventService {
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupMapper matchGroupMapper;
     private final MatchMapper matchMapper;
+    private final ClubService clubService;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -84,7 +87,10 @@ public class EventService {
 
     public PageResult<EventDto> queryAll(EventQueryCriteria criteria, Pageable pageable) {
         Page<Event> page = eventRepository.findAll(buildEventSpecification(criteria), pageable);
-        return PageUtil.toPage(page.map(eventMapper::toDto));
+        return PageUtil.toPage(page.map(event -> {
+            event.setClub(clubService.findEntityById(event.getClub().getId()));
+            return eventMapper.toDto(event);
+        }));
     }
 
     private Specification<Event> buildEventSpecification(EventQueryCriteria criteria) {
@@ -119,18 +125,24 @@ public class EventService {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         var event = eventMapper.toEntity(resource);
 
+        // Club must not be empty when creating an event
+        final Club club = clubService.findEntityById(resource.getClubId());
+        if (club == null) {
+            throw new EntityNotFoundException(Club.class, "id", resource.getClubId());
+        }
+
         Optional<EventOrganizer> organizerList = eventOrganizerRepository.findFirstByUserId(currentUserId);
         if (organizerList.isPresent()) {
             EventOrganizer organizer = organizerList.get();
             if (organizer.getVerificationStatus() != VerificationStatus.VERIFIED) {
                 throw new BadRequestException("Organizer account is not verified. Event creation is not allowed.");
             }
-            if (resource.getClubId() != null) {
-                // club must be linked to the organizer
-                validateOrganizerClubPermission(organizer, resource.getClubId());
-            }
+            // club must be linked to the organizer
+            validateOrganizerClubPermission(organizer, resource.getClubId());
             event.setOrganizer(organizer);
         }
+
+        event.setClub(club);
 
         // Set the creator of the event using the Long ID directly
         if (resource.getCreateBy() == null) { // Event.java has 'createBy' as Long

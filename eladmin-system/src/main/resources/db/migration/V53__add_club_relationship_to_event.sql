@@ -1,0 +1,1 @@
+ALTER TABLE event ADD CONSTRAINT fk_club_id_club_id FOREIGN KEY (club_id) REFERENCES club (id);

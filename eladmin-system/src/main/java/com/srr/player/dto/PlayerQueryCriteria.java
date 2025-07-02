@@ -41,7 +41,7 @@ public class PlayerQueryCriteria {
     @ApiModelProperty(value = "userId")
     private Long userId;
 
-    @Query(blurry = "name, description")
-    @ApiModelProperty(value = "keyword")
-    private String keyword;
+    @Query(type = Query.Type.INNER_LIKE)
+    @ApiModelProperty(value = "name")
+    private String name;
 }

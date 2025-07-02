@@ -1,12 +1,7 @@
 package com.srr.player;
 
 import com.srr.player.domain.Player;
-import com.srr.player.dto.PlayerAssessmentStatusDto;
-import com.srr.player.dto.PlayerDetailsDto;
-import com.srr.player.dto.PlayerDto;
-import com.srr.player.dto.PlayerDoublesStatsDto;
-import com.srr.player.dto.PlayerEventSummaryDto;
-import com.srr.player.dto.PlayerQueryCriteria;
+import com.srr.player.dto.*;
 import com.srr.player.service.PlayerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -23,9 +18,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
-* @author Chanheng
-* @date 2025-05-18
-**/
+ * @author Chanheng
+ * @date 2025-05-18
+ **/
 @RestController
 @RequiredArgsConstructor
 @Api(tags = "Player Management")
@@ -37,8 +32,8 @@ public class PlayerController {
     @GetMapping
     @ApiOperation("Query player")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<PageResult<PlayerDto>> queryPlayer(PlayerQueryCriteria criteria, Pageable pageable){
-        return new ResponseEntity<>(playerService.queryAll(criteria,pageable),HttpStatus.OK);
+    public ResponseEntity<PageResult<PlayerDto>> queryPlayer(PlayerQueryCriteria criteria, Pageable pageable) {
+        return new ResponseEntity<>(playerService.queryAll(criteria, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -59,11 +54,11 @@ public class PlayerController {
     @Log("Modify player")
     @ApiOperation("Modify player")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<Object> updatePlayer(@Validated @RequestBody Player resources){
+    public ResponseEntity<Object> updatePlayer(@Validated @RequestBody Player resources) {
         playerService.update(resources);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-    
+
     @GetMapping("/assessment-status")
     @ApiOperation("Check if player has completed self-assessment")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
