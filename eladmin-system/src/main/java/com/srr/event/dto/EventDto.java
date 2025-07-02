@@ -1,26 +1,24 @@
 /*
-*  Copyright 2019-2025 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
+ *  Copyright 2019-2025 Zheng Jie
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package com.srr.event.dto;
 
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.player.dto.PlayerDto;
-import com.srr.player.dto.TeamDto;
-import com.srr.player.dto.TeamPlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -33,13 +31,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
-* @description /
-* @author Chanheng
-* @date 2025-05-18
-**/
+ * @author Chanheng
+ * @description /
+ * @date 2025-05-18
+ **/
 @Data
-public class EventDto implements Serializable {
-
+public class EventDto extends EventTimeDto implements Serializable {
     @ApiModelProperty(value = "id")
     private Long id;
 
@@ -73,11 +70,8 @@ public class EventDto implements Serializable {
     @ApiModelProperty(value = "是否启用")
     private Boolean enabled;
 
-    @ApiModelProperty(value = "时间", required = true)
-    @NotNull(message = "Event time is mandatory")
-    private Timestamp eventTime;
-
     @ApiModelProperty(value = "clubId")
+    @NotNull(message = "Club is mandatory")
     private Long clubId;
 
     @ApiModelProperty(value = "publicLink")
@@ -92,20 +86,12 @@ public class EventDto implements Serializable {
     private EventStatus status;
 
     @ApiModelProperty(value = "Is event public?", required = true)
-    @NotNull(message = "isPublic is mandatory")
     private Boolean isPublic;
 
     private boolean allowWaitList;
 
     @ApiModelProperty(value = "Check-in time")
     private Timestamp checkInAt;
-
-    @ApiModelProperty(value = "Check-in start time", required = true)
-    @NotNull(message = "Check-in start time is mandatory")
-    private Timestamp checkInStart;
-
-    @ApiModelProperty(value = "Check-in end time (optional, defaults to event start time)")
-    private Timestamp checkInEnd;
 
     @ApiModelProperty(value = "Allow self check-in")
     private Boolean allowSelfCheckIn = true;

@@ -17,7 +17,6 @@ import com.srr.player.domain.TeamPlayer;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
-import com.srr.player.service.PlayerService;
 import com.srr.player.service.TeamPlayerService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.domain.vo.EmailVo;
@@ -32,10 +31,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import javax.validation.Valid;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -49,7 +45,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class EventService {
-
+    private static final String EVENT_BASE_URL = "https://sportrevive.com/events/";
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final TeamRepository teamRepository;
@@ -62,7 +58,6 @@ public class EventService {
     private final TagRepository tagRepository;
     private final EmailService emailService;
     private final UserRepository userRepository;
-    private final PlayerService playerService;
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupMapper matchGroupMapper;
     private final MatchMapper matchMapper;
@@ -120,32 +115,8 @@ public class EventService {
      */
     @Transactional
     public EventDto create(@Valid EventDto resource) {
-        // Date/time validation
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-
-        if (resource.getEventTime().before(now)) {
-            throw new BadRequestException("Event time cannot be in the past.");
-        }
-        if (resource.getCheckInEnd() == null) {
-            resource.setCheckInEnd(resource.getEventTime()); // Default to event start time
-        }
-
-        if (resource.getCheckInStart() == null) {
-            resource.setCheckInStart(new Timestamp(resource.getEventTime().getTime() - 60 * 60 * 1000)); // Default to 1 hour before
-        }
-
-        if (resource.getCheckInStart() != null && resource.getCheckInStart().after(resource.getEventTime())) {
-            throw new BadRequestException("Check-in start time cannot be after event time.");
-        }
-        // Validate check-in window
-        if (resource.getCheckInStart() != null && resource.getCheckInEnd() != null && resource.getEventTime() != null) {
-            if (!(resource.getCheckInStart().before(resource.getCheckInEnd()) && resource.getCheckInEnd().before(resource.getEventTime()) || resource.getCheckInEnd().equals(resource.getEventTime()))) {
-                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
-            }
-        }
-
+        validateEventTime(resource);
         Long currentUserId = SecurityUtils.getCurrentUserId();
-
         var event = eventMapper.toEntity(resource);
 
         Optional<EventOrganizer> organizerList = eventOrganizerRepository.findFirstByUserId(currentUserId);
@@ -175,7 +146,7 @@ public class EventService {
         final var result = eventRepository.save(event);
         EventDto responseDto = eventMapper.toDto(result);
         // Generate event link with full domain
-        String eventLink = "https://sportrevive.com/events/" + result.getId();
+        String eventLink = EVENT_BASE_URL + result.getId();
         responseDto.setPublicLink(eventLink);
         return responseDto;
     }
@@ -210,11 +181,8 @@ public class EventService {
             event.setCheckInEnd(event.getEventTime());
         }
         // Validate check-in window if either is being updated
-        if (event.getCheckInStart() != null && event.getCheckInEnd() != null && event.getEventTime() != null) {
-            if (!(event.getCheckInStart().before(event.getCheckInEnd()) && event.getCheckInEnd().before(event.getEventTime()) || event.getCheckInEnd().equals(event.getEventTime()))) {
-                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
-            }
-        }
+        validateCheckInCheckOut(resources);
+
         final var result = eventRepository.save(event);
         EventDto responseDto = eventMapper.toDto(result);
         String eventLink = "https://sportrevive.com/events/" + result.getId();
@@ -493,13 +461,51 @@ public class EventService {
         return groups.stream().map(group -> {
             var groupDto = matchGroupMapper.toDto(group);
             var matches = matchRepository.findAllByMatchGroupId(group.getId())
-                .stream()
-                .map(match -> {
-                    return matchMapper.toDto(match);
-                })
-                .toList();
+                    .stream()
+                    .map(match -> {
+                        return matchMapper.toDto(match);
+                    })
+                    .toList();
             groupDto.setMatches(matches);
             return groupDto;
         }).toList();
+    }
+
+    /**
+     * Validation & Set check-in and check-out time: whether event time is in the future
+     */
+    private void validateEventTime(EventDto event) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        if (event.getEventTime().before(now)) {
+            throw new BadRequestException("Event time cannot be in the past.");
+        }
+
+        if (event.getCheckInEnd() == null) {
+            event.setCheckInEnd(event.getEventTime()); // Default to event start time
+        }
+
+        if (event.getCheckInStart() == null) {
+            event.setCheckInStart(new Timestamp(event.getEventTime().getTime() - 60 * 60 * 1000)); // Default to 1 hour before
+        }
+
+        if (event.getCheckInStart() != null && event.getCheckInStart().after(event.getEventTime())) {
+            throw new BadRequestException("Check-in start time cannot be after event time.");
+        }
+
+        validateCheckInCheckOut(event);
+    }
+
+
+    /**
+     * Validation: whether check-in is before check-out and check-in is before event time
+     */
+    private <T extends EventTimeDto> void validateCheckInCheckOut(T event) {
+        if (event.getCheckInStart() != null && event.getCheckInEnd() != null && event.getEventTime() != null) {
+            if (!(event.getCheckInStart().before(event.getCheckInEnd())
+                    && event.getCheckInEnd().before(event.getEventTime())
+                    || event.getCheckInEnd().equals(event.getEventTime()))) {
+                throw new BadRequestException("Check-in window must be before or at event time and start before end.");
+            }
+        }
     }
 }
