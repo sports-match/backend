@@ -15,6 +15,7 @@
  */
 package com.srr.event.dto;
 
+import com.srr.club.dto.ClubDto;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
@@ -122,4 +123,7 @@ public class EventDto extends EventTimeDto implements Serializable {
 
     // Player's status for this event (for authenticated users)
     private TeamPlayerStatus playerStatus;
+
+
+    private ClubDto club;
 }

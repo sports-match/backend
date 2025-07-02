@@ -36,7 +36,7 @@ public class EventQueryCriteria {
     @ApiModelProperty(value = "status")
     private EventStatus status;
 
-    @Query(type = Query.Type.INNER_LIKE)
+    @Query(propName = "location", joinName = "club", type = Query.Type.INNER_LIKE)
     @ApiModelProperty(value = "location")
     private String location;
 
