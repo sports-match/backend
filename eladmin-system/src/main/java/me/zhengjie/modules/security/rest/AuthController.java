@@ -112,9 +112,7 @@ public class AuthController {
         if (loginProperties.isSingleLogin()) {
             onlineUserService.kickOutForUsername(authUser.getUsername());
         }
-
-        System.out.println(authInfo);
-
+        
         onlineUserService.save(jwtUser, token, request);
         return ResponseEntity.ok(authInfo);
     }
