@@ -76,6 +76,21 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    public User verifyEmail(String email) {
+        final User user = userRepository.findByEmail(email);
+        
+        if (user == null) {
+            throw new BadRequestException("Invalid email");
+        }
+
+        if (user.getEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+        
+        return user;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public UserDto findById(long id) {
         String key = CacheKey.USER_ID + id;

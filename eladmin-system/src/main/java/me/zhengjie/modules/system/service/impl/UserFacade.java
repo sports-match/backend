@@ -1,7 +1,6 @@
 package me.zhengjie.modules.system.service.impl;
 
 import com.srr.club.domain.Club;
-import com.srr.club.dto.ClubMapper;
 import com.srr.club.service.ClubService;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.service.EventOrganizerService;
@@ -41,8 +40,7 @@ public class UserFacade {
     private final EmailService emailService;
     private final VerifyService verifyService;
     private final ClubService clubService;
-    private final ClubMapper clubMapper;
-
+    
 
     /**
      * Create user in a single transaction

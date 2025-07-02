@@ -2,28 +2,18 @@ package com.srr.player.service;
 
 import com.srr.enumeration.Format;
 import com.srr.event.domain.Match;
-import com.srr.event.service.MatchService;
-import com.srr.player.domain.Player;
-import com.srr.player.domain.PlayerSportRating;
-import com.srr.player.domain.TeamPlayer;
-import com.srr.player.dto.PlayerAssessmentStatusDto;
-import com.srr.player.dto.PlayerDto;
-import com.srr.player.dto.PlayerDoublesStatsDto;
-import com.srr.player.dto.PlayerEventSummaryDto;
-import com.srr.player.dto.PlayerQueryCriteria;
-import com.srr.player.dto.PlayerSportRatingDto;
 import com.srr.event.dto.EventMapper;
 import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.EventRepository;
 import com.srr.event.repository.MatchRepository;
+import com.srr.event.service.MatchService;
+import com.srr.player.domain.Player;
+import com.srr.player.domain.PlayerSportRating;
+import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.*;
 import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.mapper.RatingHistoryMapper;
-import com.srr.player.repository.PlayerRepository;
-import com.srr.player.repository.PlayerSportRatingRepository;
-import com.srr.player.repository.TeamPlayerRepository;
-import com.srr.player.repository.TeamRepository;
-import com.srr.player.repository.RatingHistoryRepository;
+import com.srr.player.repository.*;
 import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.EntityNotFoundException;
@@ -132,7 +122,7 @@ public class PlayerService {
         var playerEvents = eventRepository.getPlayerCompletedEvents(id);
         var allEventsJoined = playerEvents == null ? 0 : playerEvents.size();
 
-        var lastMatch  = matchRepository.getByPlayerId(id);
+        var lastMatch = matchRepository.getByPlayerId(id);
 
         return new PlayerDetailsDto()
                 .setPlayer(playerDto)
@@ -178,20 +168,32 @@ public class PlayerService {
     }
 
 
+    /**
+     * @param sportId ID of sport for score rate validation
+     * @return PlayerAssessmentStatusDto
+     */
     public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId) {
-        // Get current user ID
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        // Find the player associated with the current user
-        Player player = findByUserId(currentUserId);
+        return checkAssessmentStatus(sportId, currentUserId);
+    }
+
+    /**
+     * @param sportId ID of sport for score rate validation
+     * @param userId  User's ID used for checking assessment
+     * @return PlayerAssessmentStatusDto
+     */
+    public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId, final Long userId) {
+        Player player = findByUserId(userId);
         if (player == null) {
             return new PlayerAssessmentStatusDto(false, "Player profile not found. Please create your profile first.");
         }
-        // Check if the player has completed the self-assessment using PlayerSportRating (Badminton/DOUBLES as example)
+
         boolean isAssessmentCompleted = false;
         Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), sportId, Format.DOUBLE);
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }
+
         String message = isAssessmentCompleted
                 ? "Self-assessment completed."
                 : "Please complete your self-assessment before joining any events.";
@@ -291,23 +293,23 @@ public class PlayerService {
         return events.stream().map(event -> {
             var eventDto = eventMapper.toDto(event);
             var matches = matchRepository.findByEventIdAndPlayerId(event.getId(), playerId)
-                .stream()
-                .map(matchMapper::toDto)
-                .toList();
+                    .stream()
+                    .map(matchMapper::toDto)
+                    .toList();
             var ratingChanges = ratingHistoryRepository.findByPlayerIdAndEventIdOrderByCreateTimeDesc(playerId, event.getId())
-                .stream()
-                .map(ratingHistoryMapper::toDto)
-                .toList();
+                    .stream()
+                    .map(ratingHistoryMapper::toDto)
+                    .toList();
             double netChange = 0.0;
             if (!ratingChanges.isEmpty()) {
                 netChange = ratingChanges.stream()
-                    .mapToDouble(dto -> dto.getChanges() != null ? dto.getChanges() : 0.0)
-                    .sum();
+                        .mapToDouble(dto -> dto.getChanges() != null ? dto.getChanges() : 0.0)
+                        .sum();
             }
             return new PlayerEventSummaryDto()
-                .setEvent(eventDto)
-                .setMatches(matches)
-                .setNetRatingChange(netChange);
+                    .setEvent(eventDto)
+                    .setMatches(matches)
+                    .setNetRatingChange(netChange);
         }).toList();
     }
 
@@ -316,26 +318,26 @@ public class PlayerService {
      */
     public PlayerEventSummaryDto getLastEventWithResultsAndRatingChange(Long playerId) {
         var lastEvent = eventRepository.getPlayerLastEvent(playerId)
-            .orElse(null);
+                .orElse(null);
         if (lastEvent == null) return null;
         var eventDto = eventMapper.toDto(lastEvent);
         var matches = matchRepository.findByEventIdAndPlayerId(lastEvent.getId(), playerId)
-            .stream()
-            .map(matchMapper::toDto)
-            .toList();
+                .stream()
+                .map(matchMapper::toDto)
+                .toList();
         var ratingChanges = ratingHistoryRepository.findByPlayerIdAndEventIdOrderByCreateTimeDesc(playerId, lastEvent.getId())
-            .stream()
-            .map(ratingHistoryMapper::toDto)
-            .toList();
+                .stream()
+                .map(ratingHistoryMapper::toDto)
+                .toList();
         double netChange = 0.0;
         if (!ratingChanges.isEmpty()) {
             netChange = ratingChanges.stream()
-                .mapToDouble(dto -> dto.getChanges() != null ? dto.getChanges() : 0.0)
-                .sum();
+                    .mapToDouble(dto -> dto.getChanges() != null ? dto.getChanges() : 0.0)
+                    .sum();
         }
         return new PlayerEventSummaryDto()
-            .setEvent(eventDto)
-            .setMatches(matches)
-            .setNetRatingChange(netChange);
+                .setEvent(eventDto)
+                .setMatches(matches)
+                .setNetRatingChange(netChange);
     }
 }

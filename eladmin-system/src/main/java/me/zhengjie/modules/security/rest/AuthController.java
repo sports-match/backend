@@ -1,13 +1,8 @@
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
-import com.srr.enumeration.Format;
-import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.service.EventOrganizerService;
-import com.srr.player.domain.Player;
-import com.srr.player.domain.PlayerSportRating;
 import com.srr.player.dto.PlayerAssessmentStatusDto;
-import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.service.PlayerService;
 import com.srr.sport.service.SportService;
 import com.wf.captcha.base.Captcha;
@@ -48,9 +43,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -78,7 +71,6 @@ public class AuthController {
     private final UserService userService;
     private final PlayerService playerService;
     private final EventOrganizerService eventOrganizerService;
-    private final PlayerSportRatingRepository playerSportRatingRepository;
     private final UserFacade userFacade;
     private final SportService sportService;
 
@@ -86,65 +78,44 @@ public class AuthController {
     @ApiOperation("login")
     @AnonymousPostMapping(value = "/login")
     public ResponseEntity<Object> login(@Validated @RequestBody AuthUserDto authUser, HttpServletRequest request) {
-        // 密码解密
 //        String password = RsaUtils.decryptByPrivateKey(RsaProperties.privateKey, authUser.getPassword());
         String password = authUser.getPassword();
 
-        // 获取用户信息
         JwtUserDto jwtUser = userDetailsService.loadUserByUsername(authUser.getUsername());
-        // 验证用户密码
         if (!passwordEncoder.matches(password, jwtUser.getPassword())) {
-            throw new BadRequestException("密码错误");
+            throw new BadRequestException("Invalid username or password");
         }
-        if (!jwtUser.isEnabled()) {
-            throw new BadRequestException("账号未激活");
-        }
-        // 生成令牌
+
         String token = tokenProvider.createToken(jwtUser);
         Map<String, Object> authInfo = new HashMap<>();
         authInfo.put("token", properties.getTokenStartWith() + token);
         authInfo.put("user", jwtUser);
 
-        // --- Add entity id if exists (playerId or organizerId) ---
-        if (jwtUser.getUser() != null && jwtUser.getUser().getUserType() != null) {
-            if (jwtUser.getUser().getUserType().name().equals("PLAYER")) {
-                Player player = playerService.findByUserId(jwtUser.getUser().getId());
-                if (player != null) {
-                    authInfo.put("playerId", player.getId());
+        if (jwtUser.getUser().getUserType() != null) {
+            Long userId = jwtUser.getUser().getId();
+            String userType = jwtUser.getUser().getUserType().name();
+            switch (userType) {
+                case "PLAYER" -> {
+                    // verify and set player assessment status
+                    final var badminton = sportService.getBadminton();
+                    final PlayerAssessmentStatusDto assessmentStatus = playerService.checkAssessmentStatus(badminton.getId(), userId);
+                    authInfo.put("assessmentStatus", assessmentStatus);
                 }
-            } else if (jwtUser.getUser().getUserType().name().equals("ORGANIZER")) {
-                List<EventOrganizer> organizers = eventOrganizerService.findByUserId(jwtUser.getUser().getId());
-                if (organizers != null && !organizers.isEmpty()) {
-                    authInfo.put("organizerInfo", organizers.get(0));
-                }
-            }
-        }
-        // ---------------------------------------------------------
 
-        // 评估状态（仅对玩家）
-        if (jwtUser.getUser() != null && jwtUser.getUser().getUserType() != null && jwtUser.getUser().getUserType().name().equals("PLAYER")) {
-            Player player = playerService.findByUserId(jwtUser.getUser().getId());
-            boolean isAssessmentCompleted = false;
-            final var badminton = sportService.getBadminton();
-            String message = "Please complete your self-assessment before joining any events.";
-            if (player != null) {
-                Optional<PlayerSportRating> ratingOpt = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(player.getId(), badminton.getId(), Format.DOUBLE);
-                if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
-                    isAssessmentCompleted = true;
-                    message = "Self-assessment completed.";
-                }
+                // set organizer information
+                case "ORGANIZER" -> eventOrganizerService.findByUserId(userId).stream()
+                        .findFirst()
+                        .ifPresent(organizer -> authInfo.put("organizerInfo", organizer));
             }
-            PlayerAssessmentStatusDto assessmentStatus = new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
-            authInfo.put("assessmentStatus", assessmentStatus);
         }
 
         if (loginProperties.isSingleLogin()) {
-            // 踢掉之前已经登录的token
             onlineUserService.kickOutForUsername(authUser.getUsername());
         }
-        // 保存在线信息
+
+        System.out.println(authInfo);
+
         onlineUserService.save(jwtUser, token, request);
-        // 返回登录信息
         return ResponseEntity.ok(authInfo);
     }
 
@@ -208,33 +179,19 @@ public class AuthController {
         // Validate OTP code
         verifyService.validated(key, verificationDto.getCode());
 
-        // Find user by email
-        User user = userService.findByEmail(verificationDto.getEmail());
-        if (user == null) {
-            throw new BadRequestException("用户不存在");
-        }
-
-        // Update user status
+        // Verify email
+        User user = userService.verifyEmail(verificationDto.getEmail());
         user.setEmailVerified(true);
         user.setEnabled(true);
+
         ExecutionResult result = userService.updateEmailVerificationStatus(user);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    @ApiOperation("重新发送验证邮件")
+    @ApiOperation("Resend verification email")
     @AnonymousPostMapping(value = "/resend-verification")
     public ResponseEntity<Object> resendVerification(@RequestParam String email) {
-        // Find user by email
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            throw new BadRequestException("用户不存在");
-        }
-
-        // Check if already verified
-        if (user.getEmailVerified()) {
-            throw new BadRequestException("邮箱已验证");
-        }
-
+        userService.verifyEmail(email); // Verify email before sending mail
         final var emailVo = userFacade.sendEmail(email);
         return new ResponseEntity<>(emailVo, HttpStatus.OK);
     }
