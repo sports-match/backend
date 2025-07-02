@@ -1,5 +1,7 @@
 package com.srr.event.service;
 
+import com.srr.club.domain.Club;
+import com.srr.club.service.ClubService;
 import com.srr.enumeration.*;
 import com.srr.event.domain.Event;
 import com.srr.event.domain.MatchGroup;
@@ -61,6 +63,7 @@ public class EventService {
     private final TeamPlayerService teamPlayerService;
     private final MatchGroupMapper matchGroupMapper;
     private final MatchMapper matchMapper;
+    private final ClubService clubService;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -119,6 +122,12 @@ public class EventService {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         var event = eventMapper.toEntity(resource);
 
+        // Club must not be empty when creating an event
+        final Club club = clubService.findEntityById(resource.getClubId());
+        if (club == null) {
+            throw new EntityNotFoundException(Club.class, "id", resource.getClubId());
+        }
+
         Optional<EventOrganizer> organizerList = eventOrganizerRepository.findFirstByUserId(currentUserId);
         if (organizerList.isPresent()) {
             EventOrganizer organizer = organizerList.get();
@@ -132,6 +141,8 @@ public class EventService {
             event.setOrganizer(organizer);
         }
 
+        event.setClub(club);
+        
         // Set the creator of the event using the Long ID directly
         if (resource.getCreateBy() == null) { // Event.java has 'createBy' as Long
             event.setCreateBy(currentUserId);
