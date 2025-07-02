@@ -28,7 +28,9 @@ import me.zhengjie.modules.system.repository.UserRepository;
 import me.zhengjie.service.EmailService;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,6 +88,15 @@ public class EventService {
     }
 
     public PageResult<EventDto> queryAll(EventQueryCriteria criteria, Pageable pageable) {
+        // default sorting by eventTime DESC
+        if (pageable.getSort().isUnsorted()) {
+            pageable = PageRequest.of(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    Sort.by(Sort.Direction.DESC, "eventTime")
+            );
+        }
+        
         Page<Event> page = eventRepository.findAll(buildEventSpecification(criteria), pageable);
         return PageUtil.toPage(page.map(event -> {
             event.setClub(clubService.findEntityById(event.getClub().getId()));
