@@ -168,9 +168,22 @@ public class PlayerService {
     }
 
 
+    /**
+     * @param sportId ID of sport for score rate validation
+     * @return PlayerAssessmentStatusDto
+     */
     public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        Player player = findByUserId(currentUserId);
+        return checkAssessmentStatus(sportId, currentUserId);
+    }
+
+    /**
+     * @param sportId ID of sport for score rate validation
+     * @param userId  User's ID used for checking assessment
+     * @return PlayerAssessmentStatusDto
+     */
+    public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId, final Long userId) {
+        Player player = findByUserId(userId);
         if (player == null) {
             return new PlayerAssessmentStatusDto(false, "Player profile not found. Please create your profile first.");
         }
@@ -180,7 +193,7 @@ public class PlayerService {
         if (ratingOpt.isPresent() && ratingOpt.get().getRateScore() != null && ratingOpt.get().getRateScore() > 0) {
             isAssessmentCompleted = true;
         }
-        
+
         String message = isAssessmentCompleted
                 ? "Self-assessment completed."
                 : "Please complete your self-assessment before joining any events.";

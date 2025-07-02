@@ -94,12 +94,11 @@ public class AuthController {
         if (jwtUser.getUser().getUserType() != null) {
             Long userId = jwtUser.getUser().getId();
             String userType = jwtUser.getUser().getUserType().name();
-
             switch (userType) {
                 case "PLAYER" -> {
                     // verify and set player assessment status
                     final var badminton = sportService.getBadminton();
-                    final PlayerAssessmentStatusDto assessmentStatus = playerService.checkAssessmentStatus(badminton.getId());
+                    final PlayerAssessmentStatusDto assessmentStatus = playerService.checkAssessmentStatus(badminton.getId(), userId);
                     authInfo.put("assessmentStatus", assessmentStatus);
                 }
 
@@ -113,6 +112,8 @@ public class AuthController {
         if (loginProperties.isSingleLogin()) {
             onlineUserService.kickOutForUsername(authUser.getUsername());
         }
+
+        System.out.println(authInfo);
 
         onlineUserService.save(jwtUser, token, request);
         return ResponseEntity.ok(authInfo);

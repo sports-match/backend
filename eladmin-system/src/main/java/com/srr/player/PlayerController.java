@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.Min;
 import java.util.List;
 
 /**
@@ -46,7 +47,7 @@ public class PlayerController {
     @GetMapping("/{id}/dashboard")
     @ApiOperation("Get player by ID")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable Long id) {
+    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable @Min(1) Long id) {
         return new ResponseEntity<>(playerService.findPlayerDetailsById(id), HttpStatus.OK);
     }
 
