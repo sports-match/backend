@@ -3,8 +3,7 @@ name: Maven Build
 on:
   push:
     branches:
-      - '*'         # This runs on all branches for the build job
-      - 'master'    # Explicitly include master
+      - 'develop'
 
 jobs:
   build:
@@ -63,7 +62,6 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
     needs: [ build, test ]
 
     steps:
