@@ -20,19 +20,21 @@ import com.srr.club.dto.ClubDto;
 import com.srr.club.dto.ClubMapper;
 import com.srr.club.dto.ClubQueryCriteria;
 import com.srr.club.repository.ClubRepository;
+import com.srr.organizer.domain.EventOrganizer;
+import com.srr.organizer.service.EventOrganizerService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.Predicate;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Chanheng
@@ -46,11 +48,32 @@ public class ClubService {
 
     private final ClubRepository clubRepository;
     private final ClubMapper clubMapper;
+    private final EventOrganizerService eventOrganizerService;
 
 
     public PageResult<ClubDto> queryAll(ClubQueryCriteria criteria, Pageable pageable) {
-        Page<Club> page = clubRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
+        Page<Club> page = clubRepository.findAll(buildEventSpecification(criteria), pageable);
         return PageUtil.toPage(page.map(clubMapper::toDto));
+    }
+
+    private Specification<Club> buildEventSpecification(ClubQueryCriteria criteria) {
+        return (root, query, builder) -> {
+            Predicate predicate = QueryHelp.getPredicate(root, criteria, builder);
+            final EventOrganizer eventOrganizer = eventOrganizerService.findCurrentUserEventOrganizer();
+
+            if (eventOrganizer != null) {
+                Set<Club> organizerClubs = eventOrganizer.getClubs();
+                if (organizerClubs != null && !organizerClubs.isEmpty()) {
+                    List<Long> clubIds = organizerClubs.stream()
+                            .map(Club::getId)
+                            .collect(Collectors.toList());
+
+                    predicate = builder.and(predicate, root.get("id").in(clubIds));
+                }
+            }
+
+            return predicate;
+        };
     }
 
 
