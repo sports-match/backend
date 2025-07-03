@@ -185,7 +185,7 @@ public class PlayerService {
     public PlayerAssessmentStatusDto checkAssessmentStatus(Long sportId, final Long userId) {
         Player player = findByUserId(userId);
         if (player == null) {
-            return new PlayerAssessmentStatusDto(false, "Player profile not found. Please create your profile first.");
+            return new PlayerAssessmentStatusDto(false, "Player profile not found. Please create your profile first.", userId);
         }
 
         boolean isAssessmentCompleted = false;
@@ -197,7 +197,7 @@ public class PlayerService {
         String message = isAssessmentCompleted
                 ? "Self-assessment completed."
                 : "Please complete your self-assessment before joining any events.";
-        return new PlayerAssessmentStatusDto(isAssessmentCompleted, message);
+        return new PlayerAssessmentStatusDto(isAssessmentCompleted, message, player.getId());
     }
 
     /**

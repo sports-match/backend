@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Chanheng
@@ -23,6 +24,23 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long>, J
 
     @Query("SELECT tp FROM TeamPlayer tp JOIN tp.team t JOIN t.event e WHERE e.id = :eventId")
     List<TeamPlayer> findByEventId(@Param("eventId") Long eventId);
+
+    /**
+     * Find all team player entries for a specific player by user ID
+     *
+     * @param eventId   The event that players has registered to
+     * @param playerIds List of player IDs who has registered to the event
+     * @return List of team player entries
+     */
+    @Query("SELECT tp FROM TeamPlayer tp " +
+            "JOIN tp.team t JOIN t.event e " +
+            "WHERE e.id = :eventId AND tp.isCheckedIn = false AND " +
+            "(:allPlayers = true OR tp.player.id IN :playerIds)")
+    List<TeamPlayer> findByEventIdAndPlayerIdsOrAllPlayers(
+            @Param("eventId") Long eventId,
+            @Param("playerIds") Set<Long> playerIds,
+            @Param("allPlayers") boolean allPlayers
+    );
 
     /**
      * Find all team player entries for a specific player by user ID

@@ -13,7 +13,6 @@ import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.*;
 import com.srr.organizer.domain.EventCoHostOrganizer;
 import com.srr.organizer.domain.EventOrganizer;
-import com.srr.organizer.dto.EventOrganizerMapper;
 import com.srr.organizer.repository.EventOrganizerRepository;
 import com.srr.organizer.service.EventCoHostOrganizerService;
 import com.srr.organizer.service.EventOrganizerService;
@@ -25,6 +24,7 @@ import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.TeamPlayerService;
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.domain.EmailConfig;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
@@ -74,8 +74,36 @@ public class EventService {
     private final MatchMapper matchMapper;
     private final ClubService clubService;
     private final EventCoHostOrganizerService eventCoHostOrganizerService;
-    private final EventOrganizerMapper eventOrganizerMapper;
     private final EventOrganizerService eventOrganizerService;
+
+
+    /**
+     * The function to create email reminder template for the event either by user input or default template.
+     *
+     * @param emailConfig     The email configuration.
+     * @param recipientEmails The players' emails to be reminded.
+     * @param emailContent    The content of user input.
+     * @return EmailVo
+     */
+    private static EmailVo getEmailVo(EmailConfig emailConfig, Event event,
+                                      List<String> recipientEmails, String emailContent) {
+        if (emailConfig.getId() == null) {
+            throw new BadRequestException("Please configure email settings first.");
+        }
+
+        String subject = "Reminder: Check-in for event " + event.getName();
+        String content = "<p>Hi,</p>" +
+                "<p>This is a reminder to check in for the event: <strong>" + event.getName() + "</strong>.</p>" +
+                "<p>The event is scheduled for: " + event.getEventTime() + ". Please make sure to check in on time.</p>" +
+                "<p>Thank you!</p>";
+
+        // Get content from user input; otherwise use default template
+        if (emailContent != null) {
+            content = emailContent;
+        }
+
+        return new EmailVo(recipientEmails, subject, content);
+    }
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -494,24 +522,25 @@ public class EventService {
 
     @Transactional
     public ExecutionResult remind(Long id, RemindDto remindDto) {
+        if (remindDto.getPlayers().isEmpty() && !remindDto.isAllPlayers()) {
+            return ExecutionResult.of(id, Map.of("message", "Please select at least one player to be reminded"));
+        }
+
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(id)));
 
-        List<TeamPlayer> playersToRemind = teamPlayerRepository.findByEventId(id).stream()
-                .filter(tp -> !tp.isCheckedIn()).toList();
-
-        if (remindDto != null && remindDto.getPlayerId() != null) {
-            playersToRemind = playersToRemind.stream()
-                    .filter(tp -> tp.getPlayer().getId().equals(remindDto.getPlayerId()))
-                    .toList();
-        }
+        // Get all players to be reminded and have not checked in yet
+        List<TeamPlayer> playersToRemind = teamPlayerRepository.
+                findByEventIdAndPlayerIdsOrAllPlayers(event.getId(), remindDto.getPlayers(), remindDto.isAllPlayers())
+                .stream().toList();
 
         if (playersToRemind.isEmpty()) {
             return ExecutionResult.of(id, Map.of("message", "No players to remind."));
         }
 
+        // Get all emails of players to be reminded
         List<String> recipientEmails = playersToRemind.stream()
-                .map(tp -> userRepository.findById(tp.getPlayer().getUserId()).orElse(null))
+                .map(teamPlayer -> userRepository.findById(teamPlayer.getPlayer().getUserId()).orElse(null))
                 .filter(Objects::nonNull)
                 .map(me.zhengjie.modules.system.domain.User::getEmail)
                 .toList();
@@ -520,18 +549,9 @@ public class EventService {
             return ExecutionResult.of(id, Map.of("message", "No valid emails found for players to remind."));
         }
 
+        // Set up email dto and send email
         var emailConfig = emailService.find();
-        if (emailConfig.getId() == null) {
-            throw new BadRequestException("Please configure email settings first.");
-        }
-
-        String subject = "Reminder: Check-in for event " + event.getName();
-        String content = "<p>Hi,</p>" +
-                "<p>This is a reminder to check in for the event: <strong>" + event.getName() + "</strong>.</p>" +
-                "<p>The event is scheduled for: " + event.getEventTime() + ". Please make sure to check in on time.</p>" +
-                "<p>Thank you!</p>";
-
-        EmailVo emailVo = new EmailVo(recipientEmails, subject, content);
+        EmailVo emailVo = getEmailVo(emailConfig, event, recipientEmails, remindDto.getContent());
         emailService.send(emailVo, emailConfig);
 
         return ExecutionResult.of(id, Map.of("remindersSent", recipientEmails.size()));

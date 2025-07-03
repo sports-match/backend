@@ -13,4 +13,5 @@ import lombok.NoArgsConstructor;
 public class PlayerAssessmentStatusDto {
     private boolean assessmentCompleted;
     private String message;
+    private Long playerId;
 }
