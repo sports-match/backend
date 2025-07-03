@@ -31,7 +31,7 @@ public class EventCoHostOrganizerService {
      * @param coHostOrganizerIds Ids of co_host organizers
      * @param event              The event to which the co_host organizers are attached
      */
-    @Transactional(rollbackFor = Exception.class, readOnly = true)
+    @Transactional(rollbackFor = Exception.class)
     public void createEventCoHostOrganizers(List<Long> coHostOrganizerIds, Event event) {
         if (!coHostOrganizerIds.isEmpty()) {
             for (Long coHostOrganizerId : coHostOrganizerIds) {

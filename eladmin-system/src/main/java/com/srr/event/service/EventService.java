@@ -158,7 +158,7 @@ public class EventService {
      * @param resource Event resource to be created
      * @return EventDto
      */
-    @Transactional(rollbackFor = Exception.class, readOnly = true)
+    @Transactional(rollbackFor = Exception.class)
     public EventDto create(@Valid EventDto resource) {
         validateEventTime(resource);
         Long currentUserId = SecurityUtils.getCurrentUserId();
@@ -537,7 +537,7 @@ public class EventService {
         return ExecutionResult.of(id, Map.of("remindersSent", recipientEmails.size()));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<MatchGroupDto> findGroup(Long eventId) {
         final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
         return matchGroupMapper.toDto(matchGroup);
