@@ -31,16 +31,24 @@ public class EventOrganizerQueryCriteria {
 
     @Query
     private Long id;
-    
+
     @Query
     @ApiModelProperty(value = "Event ID")
     private Long eventId;
-    
+
     @Query
     @ApiModelProperty(value = "Organizer User ID")
     private Long userId;
-    
+
+    @Query(propName = "id", joinName = "clubs", type = Query.Type.NOT_EQUAL)
+    @ApiModelProperty(value = "Club ID")
+    private Long clubId;
+
     @Query(type = Query.Type.BETWEEN)
     @ApiModelProperty(value = "Create time range")
     private List<Timestamp> createTime;
+
+    @Query(propName = "username", joinName = "user", type = Query.Type.INNER_LIKE)
+    @ApiModelProperty(value = "Username of organizer")
+    private String username;
 }

@@ -203,11 +203,21 @@ public class EventController {
     @DeleteMapping
     @Log("Delete event")
     @ApiOperation("Delete event")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @PreAuthorize("hasAnyAuthority('Organizer', 'Admin')")
     public ResponseEntity<Object> deleteEvent(@RequestBody Long[] ids) {
         final var result = eventService.deleteAll(ids);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
+    @DeleteMapping("/{id}")
+    @Log("Delete event")
+    @ApiOperation("Delete event")
+    @PreAuthorize("hasAnyAuthority('Organizer', 'Admin')")
+    public ResponseEntity<Object> deleteEventById(@PathVariable Long id) {
+        final var result = eventService.deleteById(id);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
 
     @PostMapping("/{id}/remind")
     @Log("Send reminder for event")

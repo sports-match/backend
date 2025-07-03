@@ -3,15 +3,16 @@ package com.srr.organizer.dto;
 import com.srr.club.dto.ClubDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import me.zhengjie.modules.system.service.dto.UserDto;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
 
 /**
-* @description Event organizer data transfer object
-* @author Chanheng
-* @date 2025-05-26
-**/
+ * @author Chanheng
+ * @description Event organizer data transfer object
+ * @date 2025-05-26
+ **/
 @Data
 public class EventOrganizerDto implements Serializable {
 
@@ -30,6 +31,6 @@ public class EventOrganizerDto implements Serializable {
     @ApiModelProperty(value = "Update time")
     private Timestamp updateTime;
 
-    @ApiModelProperty(value = "User ID")
-    private Long userId;
+    @ApiModelProperty(value = "User")
+    private UserDto user;
 }

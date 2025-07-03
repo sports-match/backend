@@ -37,6 +37,13 @@ import java.util.Set;
 public interface UserService {
 
     /**
+     * Get current user logged in
+     *
+     * @return User
+     */
+    User findCurrentUser();
+
+    /**
      * Verify email and validate whether the email has been verified.
      *
      * @param email User email for verification

@@ -11,8 +11,12 @@ import com.srr.event.dto.*;
 import com.srr.event.mapper.MatchGroupMapper;
 import com.srr.event.mapper.MatchMapper;
 import com.srr.event.repository.*;
+import com.srr.organizer.domain.EventCoHostOrganizer;
 import com.srr.organizer.domain.EventOrganizer;
+import com.srr.organizer.dto.EventOrganizerMapper;
 import com.srr.organizer.repository.EventOrganizerRepository;
+import com.srr.organizer.service.EventCoHostOrganizerService;
+import com.srr.organizer.service.EventOrganizerService;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
@@ -35,7 +39,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import javax.persistence.criteria.Subquery;
 import javax.validation.Valid;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -66,6 +73,9 @@ public class EventService {
     private final MatchGroupMapper matchGroupMapper;
     private final MatchMapper matchMapper;
     private final ClubService clubService;
+    private final EventCoHostOrganizerService eventCoHostOrganizerService;
+    private final EventOrganizerMapper eventOrganizerMapper;
+    private final EventOrganizerService eventOrganizerService;
 
     private Set<Tag> processIncomingTags(Set<String> tagsFromResource) {
         if (tagsFromResource == null || tagsFromResource.isEmpty()) {
@@ -96,7 +106,7 @@ public class EventService {
                     Sort.by(Sort.Direction.DESC, "eventTime")
             );
         }
-        
+
         Page<Event> page = eventRepository.findAll(buildEventSpecification(criteria), pageable);
         return PageUtil.toPage(page.map(event -> {
             event.setClub(clubService.findEntityById(event.getClub().getId()));
@@ -115,6 +125,24 @@ public class EventService {
                     predicate = builder.and(predicate, builder.lessThan(root.get("eventTime"), now));
                 }
             }
+
+            // If the current user is an event organizer, only show events that are either theirs or co-hosted
+            final EventOrganizer eventOrganizer = eventOrganizerService.findCurrentUserEventOrganizer();
+            if (eventOrganizer != null) {
+                Subquery<Long> subquery = query.subquery(Long.class);
+                Root<Event> eventRoot = subquery.from(Event.class);
+                Join<Event, EventCoHostOrganizer> ecoJoin = eventRoot.join("eventCoHostOrganizers");
+
+                subquery.select(eventRoot.get("id"))
+                        .where(builder.equal(ecoJoin.get("event").get("id"), root.get("id")));
+
+                predicate = builder.and(predicate,
+                        builder.or(
+                                builder.equal(root.get("organizer").get("id"), eventOrganizer.getId()),
+                                root.get("id").in(subquery.getSelection())
+                        )
+                );
+            }
             return predicate;
         };
     }
@@ -127,10 +155,10 @@ public class EventService {
     }
 
     /**
-     * @param resource
-     * @return
+     * @param resource Event resource to be created
+     * @return EventDto
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class, readOnly = true)
     public EventDto create(@Valid EventDto resource) {
         validateEventTime(resource);
         Long currentUserId = SecurityUtils.getCurrentUserId();
@@ -142,34 +170,36 @@ public class EventService {
             throw new EntityNotFoundException(Club.class, "id", resource.getClubId());
         }
 
+        // Set main organizer
         Optional<EventOrganizer> organizerList = eventOrganizerRepository.findFirstByUserId(currentUserId);
-        if (organizerList.isPresent()) {
-            EventOrganizer organizer = organizerList.get();
-            if (organizer.getVerificationStatus() != VerificationStatus.VERIFIED) {
-                throw new BadRequestException("Organizer account is not verified. Event creation is not allowed.");
-            }
-            // club must be linked to the organizer
-            validateOrganizerClubPermission(organizer, resource.getClubId());
-            event.setOrganizer(organizer);
-        }
+        organizerList.ifPresent(mainOrganizer -> {
+            // validate co_host organizer account
+            eventCoHostOrganizerService.validateOrganizerAccount(mainOrganizer);
 
-        event.setClub(club);
+            // main organizer must be a member of the club
+            validateOrganizerClubPermission(mainOrganizer, resource.getClubId());
+            event.setOrganizer(mainOrganizer);
+        });
 
         // Set the creator of the event using the Long ID directly
         if (resource.getCreateBy() == null) { // Event.java has 'createBy' as Long
             event.setCreateBy(currentUserId);
         }
+
         // If organizerList is empty, it means the user is not an organizer (e.g., an admin),
         // so the check is bypassed. Permission to create is handled by @PreAuthorize.
-
+        event.setClub(club);
         event.setStatus(EventStatus.PUBLISHED);
         Set<Tag> processedTags = processIncomingTags(resource.getTags());
         event.setTags(processedTags);
 
-        final var result = eventRepository.save(event);
-        EventDto responseDto = eventMapper.toDto(result);
-        // Generate event link with full domain
-        String eventLink = EVENT_BASE_URL + result.getId();
+        final Event eventResult = eventRepository.save(event);
+
+        // Set co_host organizers or throw exception
+        eventCoHostOrganizerService.createEventCoHostOrganizers(resource.getCoHostOrganizers(), eventResult);
+
+        EventDto responseDto = eventMapper.toDto(eventResult);
+        String eventLink = EVENT_BASE_URL + eventResult.getId();
         responseDto.setPublicLink(eventLink);
         return responseDto;
     }
@@ -376,29 +406,37 @@ public class EventService {
         return responseDto;
     }
 
+    /**
+     * Delete an event related match, team, team player and waitlist
+     * for any event with status PUBLISHED and CLOSED
+     *
+     * @param id The event ID to be deleted
+     * @return ExecutionResult
+     **/
+    @Transactional(rollbackFor = Exception.class)
+    public ExecutionResult deleteById(Long id) {
+        successfulDelete(id);
+        Map<String, Object> data = new HashMap<>();
+        data.put("success", "Event has been deleted successfully");
+        return ExecutionResult.of(id, data);
+    }
+
+    /**
+     * Delete all event related match, team, team player and waitlist
+     * for any event with status PUBLISHED and CLOSED
+     *
+     * @param ids The event ID to be deleted
+     * @return ExecutionResult
+     **/
     @Transactional(rollbackFor = Exception.class)
     public ExecutionResult deleteAll(Long[] ids) {
         List<Long> successfulDeletes = new ArrayList<>();
         List<Long> failedDeletes = new ArrayList<>();
 
         for (Long id : ids) {
-            Optional<Event> eventOptional = eventRepository.findById(id);
-            if (eventOptional.isPresent()) {
-                Event event = eventOptional.get();
-                if (event.getStatus() == EventStatus.PUBLISHED || event.getStatus() == EventStatus.CLOSED) {
-                    List<MatchGroup> matchGroups = matchGroupRepository.findAllByEventId(id);
-                    for (MatchGroup group : matchGroups) {
-                        matchRepository.deleteByMatchGroupId(group.getId());
-                    }
-                    matchGroupRepository.deleteByEventId(id);
-                    teamPlayerRepository.deleteByTeamEventId(id);
-                    teamRepository.deleteByEventId(id);
-                    waitListRepository.deleteByEventId(id);
-                    eventRepository.deleteById(id);
-                    successfulDeletes.add(id);
-                } else {
-                    failedDeletes.add(id);
-                }
+            final boolean isSuccessfulDelete = successfulDelete(id);
+            if (isSuccessfulDelete) {
+                successfulDeletes.add(id);
             } else {
                 failedDeletes.add(id);
             }
@@ -408,11 +446,40 @@ public class EventService {
         data.put("failedDeletes", failedDeletes.size());
         data.put("details", Map.of("successfulIds", successfulDeletes, "failedIds", failedDeletes));
 
-        Long operationId = (ids != null && ids.length > 0) ? ids[0] : null;
+        Long operationId = ids.length > 0 ? ids[0] : null;
         if (!failedDeletes.isEmpty()) {
             operationId = failedDeletes.get(0);
         }
         return ExecutionResult.of(operationId, data);
+    }
+
+    /**
+     * Delete an event related match, team, team player and waitlist
+     * for any event with status PUBLISHED and CLOSED. Then it returns successful status or not
+     *
+     * @param id The event ID to be deleted
+     * @return boolean
+     **/
+    private boolean successfulDelete(final Long id) {
+        Optional<Event> eventOptional = eventRepository.findById(id);
+        if (eventOptional.isPresent()) {
+            Event event = eventOptional.get();
+            if (event.getStatus() == EventStatus.PUBLISHED || event.getStatus() == EventStatus.CLOSED) {
+                List<MatchGroup> matchGroups = matchGroupRepository.findAllByEventId(id);
+                for (MatchGroup group : matchGroups) {
+                    matchRepository.deleteByMatchGroupId(group.getId());
+                }
+                matchGroupRepository.deleteByEventId(id);
+                teamPlayerRepository.deleteByTeamEventId(id);
+                teamRepository.deleteByEventId(id);
+                waitListRepository.deleteByEventId(id);
+                eventRepository.deleteById(id);
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void validateOrganizerClubPermission(EventOrganizer organizer, Long clubId) {

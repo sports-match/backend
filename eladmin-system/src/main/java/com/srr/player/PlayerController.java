@@ -34,6 +34,7 @@ public class PlayerController {
     @ApiOperation("Query player")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PageResult<PlayerDto>> queryPlayer(PlayerQueryCriteria criteria, Pageable pageable) {
+        System.out.println(criteria + " : " + pageable.getPageSize());
         return new ResponseEntity<>(playerService.queryAll(criteria, pageable), HttpStatus.OK);
     }
 
