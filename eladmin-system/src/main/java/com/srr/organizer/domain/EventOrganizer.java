@@ -6,11 +6,11 @@ import com.srr.club.domain.Club;
 import com.srr.enumeration.VerificationStatus;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import me.zhengjie.modules.system.domain.User;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.HashSet;
@@ -46,10 +46,10 @@ public class EventOrganizer implements Serializable {
     @ApiModelProperty(value = "Update time", hidden = true)
     private Timestamp updateTime;
 
-    @Column(name = "`user_id`", nullable = false)
-    @NotNull
     @ApiModelProperty(value = "userId")
-    private Long userId;
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
+    private User user;
 
     @ManyToMany
     @JoinTable(name = "organizer_club",

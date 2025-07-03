@@ -40,7 +40,7 @@ public class UserFacade {
     private final EmailService emailService;
     private final VerifyService verifyService;
     private final ClubService clubService;
-    
+
 
     /**
      * Create user in a single transaction
@@ -137,7 +137,7 @@ public class UserFacade {
      */
     private void createEventOrganizerEntity(final User user, final Long clubId) {
         EventOrganizer organizer = new EventOrganizer();
-        organizer.setUserId(user.getId());
+        organizer.setUser(user);
         organizer.setDescription("Event organizer created upon registration");
 
         if (clubId == null) {

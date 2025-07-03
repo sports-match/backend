@@ -19,7 +19,6 @@ import com.srr.club.dto.ClubDto;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
-import com.srr.player.dto.PlayerDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -110,8 +109,8 @@ public class EventDto extends EventTimeDto implements Serializable {
     @NotNull(message = "Max participants is mandatory")
     private Integer maxParticipants;
 
-    @ApiModelProperty(value = "Co-host players")
-    private List<PlayerDto> coHostPlayers;
+    @ApiModelProperty(value = "Co-host organizers of the event")
+    private List<Long> coHostOrganizers;
 
     @ApiModelProperty(value = "Tags")
     private Set<String> tags = new HashSet<>();

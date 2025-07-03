@@ -37,7 +37,6 @@ import java.util.*;
 @Slf4j
 @SuppressWarnings({"unchecked", "all"})
 public class QueryHelp {
-
     public static <R, Q> Predicate getPredicate(Root<R> root, Q query, CriteriaBuilder cb) {
         List<Predicate> list = new ArrayList<>();
         if (query == null) {
@@ -137,7 +136,7 @@ public class QueryHelp {
                             LocalDateTime startOfDay = date.atStartOfDay();
                             LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
                             list.add(cb.between(expression, startOfDay, endOfDay));
-                            
+
                             break;
 
                         case GREATER_THAN:

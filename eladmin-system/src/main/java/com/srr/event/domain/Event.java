@@ -20,6 +20,7 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import com.srr.club.domain.Club;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
+import com.srr.organizer.domain.EventCoHostOrganizer;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.Team;
@@ -170,16 +171,19 @@ public class Event implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName = "id"))
     @ApiModelProperty(value = "Tags associated with the event")
     private Set<Tag> tags = new HashSet<>();
-
-    @ManyToOne
-    @JoinColumn(name = "organizer_id")
-    private EventOrganizer organizer;
-
+    
     @ManyToMany
     @JoinTable(name = "event_co_host_player",
             joinColumns = {@JoinColumn(name = "event_id", referencedColumnName = "id")},
             inverseJoinColumns = {@JoinColumn(name = "player_id", referencedColumnName = "id")})
     private List<Player> coHostPlayers = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "organizer_id")
+    private EventOrganizer organizer;
+
+    @OneToMany(mappedBy = "event")
+    private Set<EventCoHostOrganizer> eventCoHostOrganizers = new HashSet<>();
 
     @OneToMany(mappedBy = "event")
     private List<MatchGroup> matchGroups = new ArrayList<>();

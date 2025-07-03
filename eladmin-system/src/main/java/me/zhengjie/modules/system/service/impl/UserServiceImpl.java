@@ -76,9 +76,20 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    public User findCurrentUser() {
+        User user = userRepository.findByUsername(SecurityUtils.getCurrentUsername());
+
+        if (user == null) {
+            throw new EntityExistException(User.class, "username", SecurityUtils.getCurrentUsername());
+        }
+
+        return user;
+    }
+
+    @Override
     public User verifyEmail(String email) {
         final User user = userRepository.findByEmail(email);
-        
+
         if (user == null) {
             throw new BadRequestException("Invalid email");
         }
@@ -86,7 +97,7 @@ public class UserServiceImpl implements UserService {
         if (user.getEmailVerified()) {
             throw new BadRequestException("Email is already verified");
         }
-        
+
         return user;
     }
 
