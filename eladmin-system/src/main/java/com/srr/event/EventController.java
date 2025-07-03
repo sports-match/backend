@@ -222,8 +222,8 @@ public class EventController {
     @PostMapping("/{id}/remind")
     @Log("Send reminder for event")
     @ApiOperation("Send reminder for event")
-    @PreAuthorize("hasAuthority('Organizer')")
-    public ResponseEntity<Object> remind(@PathVariable Long id, @RequestBody(required = false) RemindDto remindDto) {
+    @PreAuthorize("hasAnyAuthority('Organizer', 'Admin')")
+    public ResponseEntity<Object> remind(@PathVariable Long id, @RequestBody @Validated RemindDto remindDto) {
         final var result = eventService.remind(id, remindDto);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }

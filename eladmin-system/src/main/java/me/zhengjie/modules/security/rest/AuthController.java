@@ -99,6 +99,7 @@ public class AuthController {
                     // verify and set player assessment status
                     final var badminton = sportService.getBadminton();
                     final PlayerAssessmentStatusDto assessmentStatus = playerService.checkAssessmentStatus(badminton.getId(), userId);
+                    authInfo.put("playerId", assessmentStatus.getPlayerId());
                     authInfo.put("assessmentStatus", assessmentStatus);
                 }
 
@@ -112,7 +113,7 @@ public class AuthController {
         if (loginProperties.isSingleLogin()) {
             onlineUserService.kickOutForUsername(authUser.getUsername());
         }
-        
+
         onlineUserService.save(jwtUser, token, request);
         return ResponseEntity.ok(authInfo);
     }

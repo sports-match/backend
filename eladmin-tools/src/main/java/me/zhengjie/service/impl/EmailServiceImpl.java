@@ -65,7 +65,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void send(EmailVo emailVo, EmailConfig emailConfig) {
         if (emailConfig.getId() == null) {
-            throw new BadRequestException("请先配置，再操作");
+            throw new BadRequestException("Email settings has not been configured yet.");
         }
         MailAccount account = new MailAccount();
         String user = emailConfig.getFromUser().split("@")[0];
