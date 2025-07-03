@@ -57,11 +57,13 @@ public class EventOrganizerService {
 
     public List<EventOrganizerDto> findEventOrganizersForOtherClubs(EventOrganizerQueryCriteria criteria, Pageable pageable) {
         // check if the club exists
-        final Club club = clubRepository.findById(criteria.getClubId()).orElse(null);
-        if (club == null) {
-            throw new EntityNotFoundException(Club.class, "id", criteria.getClubId());
+        if (criteria.getClubId() != null) {
+            final Club club = clubRepository.findById(criteria.getClubId()).orElse(null);
+            if (club == null) {
+                throw new EntityNotFoundException(Club.class, "id", criteria.getClubId());
+            }
         }
-
+        
         // find the event organizers by pageable and criteria
         final List<EventOrganizer> organizers = eventOrganizerRepository
                 .findAll((root, query, builder) -> QueryHelp.getPredicate(root, criteria, builder), pageable).getContent();
@@ -69,13 +71,14 @@ public class EventOrganizerService {
         // map the event organizers to event organizer dto
         return organizers.stream()
                 .map(eventOrganizer -> {
-                    final ClubDto clubDto = clubMapper.toDto(club);
+                    final ClubDto clubDto = clubMapper.toDto(eventOrganizer.getClubs().stream().findFirst().orElse(null));
                     final UserDto userDto = userMapper.toDto(eventOrganizer.getUser());
                     final EventOrganizerDto eventOrganizerDto = eventOrganizerMapper.toDto(eventOrganizer);
                     eventOrganizerDto.setClub(clubDto);
                     eventOrganizerDto.setUser(userDto);
                     return eventOrganizerDto;
                 }).toList();
+
     }
 
     @Transactional
