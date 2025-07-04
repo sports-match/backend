@@ -176,7 +176,10 @@ public class EventController {
     @PreAuthorize("hasAuthority('Organizer')")
     public ResponseEntity<Object> generateMatches(@PathVariable Long id) {
         matchGenerationService.generateMatchesForEvent(id);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        Map<String, Object> result = new HashMap<>();
+        result.put("matchesCreated", id);
+        result.put("message", "Successfully created matches for each group for event " + id);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}/matches")
