@@ -11,7 +11,6 @@ import java.io.Serializable;
 
 @Data
 public class UserRegisterDto implements Serializable {
-
     @NotBlank(message = "Username cannot be blank")
     private String username;
 
@@ -31,6 +30,4 @@ public class UserRegisterDto implements Serializable {
 
     @NotNull(message = "User type cannot be blank")
     private UserType userType;
-
-    private Long clubId;
 }

@@ -102,11 +102,13 @@ public class AuthController {
                     authInfo.put("playerId", assessmentStatus.getPlayerId());
                     authInfo.put("assessmentStatus", assessmentStatus);
                 }
-
                 // set organizer information
-                case "ORGANIZER" -> eventOrganizerService.findByUserId(userId).stream()
-                        .findFirst()
-                        .ifPresent(organizer -> authInfo.put("organizerInfo", organizer));
+                case "ORGANIZER" -> eventOrganizerService.findByUserId(userId)
+                        .ifPresent(organizer -> {
+                            authInfo.put("organizerId", organizer.getId());
+                            authInfo.put("organizerInfo", organizer);
+                            authInfo.put("completedClubSelection", !organizer.getClubs().isEmpty());
+                        });
             }
         }
 

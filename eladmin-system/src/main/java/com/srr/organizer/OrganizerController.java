@@ -1,6 +1,8 @@
 package com.srr.organizer;
 
 import com.srr.club.domain.Club;
+import com.srr.organizer.domain.EventOrganizer;
+import com.srr.organizer.dto.EventOrganizerClubDto;
 import com.srr.organizer.dto.EventOrganizerDto;
 import com.srr.organizer.dto.EventOrganizerQueryCriteria;
 import com.srr.organizer.service.EventOrganizerService;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +24,6 @@ import java.util.Set;
 @Api(tags = "Organizer Management")
 @RequestMapping("/api/organizers")
 public class OrganizerController {
-
     private final EventOrganizerService organizerService;
 
     @ApiOperation("Link clubs to organizer")
@@ -29,9 +31,9 @@ public class OrganizerController {
     @PreAuthorize("hasAnyAuthority('Organizer')")
     public ResponseEntity<?> linkClubsToOrganizer(
             @PathVariable Long organizerId,
-            @RequestBody List<Long> clubIds) {
-        organizerService.linkClubs(organizerId, clubIds);
-        return ResponseEntity.ok().build();
+            @RequestBody @Validated EventOrganizerClubDto request) {
+        final EventOrganizer eventOrganizer = organizerService.linkClubs(organizerId, request);
+        return new ResponseEntity<>(eventOrganizer, HttpStatus.OK);
     }
 
     @ApiOperation("Get clubs for organizer")

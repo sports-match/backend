@@ -6,6 +6,7 @@ import com.srr.club.dto.ClubMapper;
 import com.srr.club.repository.ClubRepository;
 import com.srr.enumeration.VerificationStatus;
 import com.srr.organizer.domain.EventOrganizer;
+import com.srr.organizer.dto.EventOrganizerClubDto;
 import com.srr.organizer.dto.EventOrganizerDto;
 import com.srr.organizer.dto.EventOrganizerMapper;
 import com.srr.organizer.dto.EventOrganizerQueryCriteria;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -63,7 +65,7 @@ public class EventOrganizerService {
                 throw new EntityNotFoundException(Club.class, "id", criteria.getClubId());
             }
         }
-        
+
         // find the event organizers by pageable and criteria
         final List<EventOrganizer> organizers = eventOrganizerRepository
                 .findAll((root, query, builder) -> QueryHelp.getPredicate(root, criteria, builder), pageable).getContent();
@@ -88,8 +90,8 @@ public class EventOrganizerService {
     }
 
 
-    public List<EventOrganizer> findByUserId(Long userId) {
-        return eventOrganizerRepository.findByUserId(userId);
+    public Optional<EventOrganizer> findByUserId(Long userId) {
+        return eventOrganizerRepository.findFirstByUserId(userId);
     }
 
 
@@ -112,12 +114,14 @@ public class EventOrganizerService {
 
 
     @Transactional
-    public void linkClubs(Long organizerId, List<Long> clubIds) {
+    public EventOrganizer linkClubs(Long organizerId, EventOrganizerClubDto request) {
         EventOrganizer organizer = eventOrganizerRepository.findById(organizerId)
                 .orElseThrow(() -> new IllegalArgumentException("Organizer not found"));
-        Set<Club> clubs = new HashSet<>(clubRepository.findAllById(clubIds));
+        Set<Club> clubs = new HashSet<>(clubRepository.findAllById(request.getClubs()));
         organizer.setClubs(clubs);
         eventOrganizerRepository.save(organizer);
+
+        return organizer;
     }
 
 

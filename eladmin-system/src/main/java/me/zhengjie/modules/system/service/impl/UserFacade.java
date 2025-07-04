@@ -1,6 +1,5 @@
 package me.zhengjie.modules.system.service.impl;
 
-import com.srr.club.domain.Club;
 import com.srr.club.service.ClubService;
 import com.srr.organizer.domain.EventOrganizer;
 import com.srr.organizer.service.EventOrganizerService;
@@ -10,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.zhengjie.domain.EmailConfig;
 import me.zhengjie.domain.vo.EmailVo;
-import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.modules.security.service.dto.UserRegisterDto;
 import me.zhengjie.modules.security.service.enums.UserType;
 import me.zhengjie.modules.system.domain.Role;
@@ -23,7 +21,6 @@ import me.zhengjie.utils.ExecutionResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -51,7 +48,7 @@ public class UserFacade {
     @Transactional
     public ExecutionResult createUserTransactional(UserRegisterDto registerDto) {
         final var createdUser = userService.create(registerDto);
-        createUserTypeEntity(createdUser, registerDto.getClubId());
+        createUserTypeEntity(createdUser);
         return ExecutionResult.of(createdUser.getId(), null);
     }
 
@@ -132,21 +129,13 @@ public class UserFacade {
     /**
      * Creates an EventOrganizer entity for the given user
      *
-     * @param user   The user to create an EventOrganizer for
-     * @param clubId The club for organizer
+     * @param user The user to create an EventOrganizer for
      */
-    private void createEventOrganizerEntity(final User user, final Long clubId) {
+    private void createEventOrganizerEntity(final User user) {
         EventOrganizer organizer = new EventOrganizer();
         organizer.setUser(user);
         organizer.setDescription("Event organizer created upon registration");
-
-        if (clubId == null) {
-            throw new BadRequestException("Club must be provided to create an event organizer");
-        }
-
-        final Club club = clubService.findEntityById(clubId);
-        organizer.setClubs(new HashSet<>(Collections.singleton(club)));
-
+        
         // Save organizer - this will trigger role assignment via UserRoleSyncService
         eventOrganizerService.create(organizer);
         log.info("Created event organizer for user: {}", user.getUsername());
@@ -157,7 +146,7 @@ public class UserFacade {
      *
      * @param user The user to create entity for
      */
-    private void createUserTypeEntity(final User user, final Long clubId) {
+    private void createUserTypeEntity(final User user) {
         // Get user type from user entity
         UserType userType = user.getUserType();
 
@@ -171,7 +160,7 @@ public class UserFacade {
                 case ORGANIZER:
                     // Assign Organizer role to the user
                     assignRoleToUser(user, "Organizer");
-                    createEventOrganizerEntity(user, clubId);
+                    createEventOrganizerEntity(user);
                     break;
                 case ADMIN:
                     // No entity to create for ADMIN
