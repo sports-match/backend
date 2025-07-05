@@ -28,7 +28,7 @@ import org.springframework.context.annotation.Configuration;
 import java.awt.*;
 
 /**
- * 登录验证码配置信息
+ * Login verification code configuration information
  * @author liaojinlong
  * @date 2025-01-13
  */
@@ -38,50 +38,50 @@ import java.awt.*;
 public class CaptchaConfig {
 
     /**
-     * 验证码配置
+     * Verification code configuration
      */
     @Getter
     private LoginCodeEnum codeType;
 
     /**
-     * 验证码有效期 分钟
+     * Verification code validity period in minutes
      */
     private Long expiration = 5L;
 
     /**
-     * 验证码内容长度
+     * Verification code content length
      */
     private int length = 4;
 
     /**
-     * 验证码宽度
+     * Verification code width
      */
     private int width = 111;
 
     /**
-     * 验证码高度
+     * Verification code height
      */
     private int height = 36;
 
     /**
-     * 验证码字体
+     * Verification code font
      */
     private String fontName;
 
     /**
-     * 字体大小
+     * Font size
      */
     private int fontSize = 25;
 
     /**
-     * 依据配置信息生产验证码
+     * Generate verification code based on configuration information
      * @return /
      */
     public Captcha getCaptcha() {
         Captcha captcha;
         switch (codeType) {
             case ARITHMETIC:
-                // 算术类型 https://gitee.com/whvse/EasyCaptcha
+                // Arithmetic type https://gitee.com/whvse/EasyCaptcha
                 captcha = new FixedArithmeticCaptcha(width, height);
                 // 几位数运算，默认是两位
                 captcha.setLen(length);
@@ -103,7 +103,7 @@ public class CaptchaConfig {
                 captcha.setLen(length);
                 break;
             default:
-                throw new BadRequestException("验证码配置信息错误！正确配置查看 LoginCodeEnum ");
+                throw new BadRequestException("Verification code configuration error! See LoginCodeEnum for correct configuration ");
         }
         if(StringUtils.isNotBlank(fontName)){
             captcha.setFont(new Font(fontName, Font.PLAIN, fontSize));
@@ -118,11 +118,11 @@ public class CaptchaConfig {
 
         @Override
         protected char[] alphas() {
-            // 生成随机数字和运算符
+            // Generate random numbers and operators
             int n1 = num(1, 10), n2 = num(1, 10);
             int opt = num(3);
 
-            // 计算结果
+            // Calculate result
             int res = new int[]{n1 + n2, n1 - n2, n1 * n2}[opt];
             // 转换为字符运算符
             char optChar = "+-x".charAt(opt);

@@ -29,7 +29,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
  * @author Zheng Jie
@@ -40,7 +40,7 @@ import static org.springframework.http.HttpStatus.*;
 public class GlobalExceptionHandler {
 
     /**
-     * 处理所有不可知的异常
+     * Handle all unknown exceptions
      */
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<ApiError> handleException(Throwable e) {
@@ -55,13 +55,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> badCredentialsException(BadCredentialsException e) {
         // 打印堆栈信息
-        String message = "坏的凭证".equals(e.getMessage()) ? "用户名或密码不正确" : e.getMessage();
+        String message = "Bad credentials".equals(e.getMessage()) ? "Username or password incorrect" : e.getMessage();
         log.warn(message);
         return buildResponseEntity(ApiError.error(message));
     }
 
     /**
-     * 处理自定义异常
+     * Handle custom exceptions
      */
     @ExceptionHandler(value = BadRequestException.class)
     public ResponseEntity<ApiError> badRequestException(BadRequestException e) {
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理 EntityExist
+     * Handle EntityExist
      */
     @ExceptionHandler(value = EntityExistException.class)
     public ResponseEntity<ApiError> entityExistException(EntityExistException e) {
@@ -81,7 +81,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理 EntityNotFound
+     * Handle EntityNotFound
      */
     @ExceptionHandler(value = EntityNotFoundException.class)
     public ResponseEntity<ApiError> entityNotFoundException(EntityNotFoundException e) {
@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理所有接口数据验证异常
+     * Handle all interface data validation exceptions
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
@@ -106,7 +106,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 统一返回
+     * Unified return
      */
     private ResponseEntity<ApiError> buildResponseEntity(ApiError apiError) {
         return new ResponseEntity<>(apiError, HttpStatus.valueOf(apiError.getStatus()));

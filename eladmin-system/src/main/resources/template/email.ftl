@@ -20,7 +20,7 @@
             border: 1px solid #eee;">
     <div style="padding: 10px;padding-bottom: 0px;">
         <p style="margin-bottom: 10px;padding-bottom: 0px;">Dear user,</p>
-        <p style="text-indent: 2em; margin-bottom: 10px;">This is registration verification code：</p>
+        <p style="text-indent: 2em; margin-bottom: 10px;">This is registration verification code:</p>
         <p style="text-align: center;
 			font-family: Times New Roman;
 			font-size: 22px;

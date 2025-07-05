@@ -49,13 +49,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Zheng Jie
  * @date 2018-11-23
- * 授权、根据token获取用户详细信息
+ * Authorization, get user details based on token
  */
 @Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Api(tags = "系统：系统授权接口")
+@Api(tags = "System: System authorization interface")
 public class AuthController {
     private static final String REGISTER_KEY_PREFIX = "register:email:";
 
@@ -130,17 +130,17 @@ public class AuthController {
     @ApiOperation("get verification code")
     @AnonymousGetMapping(value = "/code")
     public ResponseEntity<Object> getCode() {
-        // 获取运算的结果
+        // Get the result of the operation
         Captcha captcha = captchaConfig.getCaptcha();
         String uuid = properties.getCodeKey() + IdUtil.simpleUUID();
-        //当验证码类型为 arithmetic时且长度 >= 2 时，captcha.text()的结果有几率为浮点型
+        // When verification code type is arithmetic and length >= 2, captcha.text() result may be a floating point
         String captchaValue = captcha.text();
         if (captcha.getCharType() - 1 == LoginCodeEnum.ARITHMETIC.ordinal() && captchaValue.contains(".")) {
             captchaValue = captchaValue.split("\\.")[0];
         }
-        // 保存
+        // Save
         redisUtils.set(uuid, captchaValue, captchaConfig.getExpiration(), TimeUnit.MINUTES);
-        // 验证码信息
+        // Verification code information
         Map<String, Object> imgResult = new HashMap<>(2) {{
             put("img", captcha.toBase64());
             put("uuid", uuid);
@@ -148,7 +148,7 @@ public class AuthController {
         return ResponseEntity.ok(imgResult);
     }
 
-    @ApiOperation("退出登录")
+    @ApiOperation("Logout")
     @AnonymousDeleteMapping(value = "/logout")
     public ResponseEntity<Object> logout(HttpServletRequest request) {
         onlineUserService.logout(tokenProvider.getToken(request));
@@ -172,7 +172,7 @@ public class AuthController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @ApiOperation("验证邮箱")
+    @ApiOperation("Verify email")
     @AnonymousPostMapping(value = "/verify-email")
     public ResponseEntity<Object> verifyEmail(@Validated @RequestBody EmailVerificationDto verificationDto) {
         String key = REGISTER_KEY_PREFIX + verificationDto.getEmail();
