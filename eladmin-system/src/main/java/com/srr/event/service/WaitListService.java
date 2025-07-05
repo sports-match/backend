@@ -25,16 +25,15 @@ import com.srr.event.repository.WaitListRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
-import me.zhengjie.utils.*;
+import me.zhengjie.utils.ExecutionResult;
+import me.zhengjie.utils.PageResult;
+import me.zhengjie.utils.PageUtil;
+import me.zhengjie.utils.QueryHelp;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -168,21 +167,6 @@ public class WaitListService {
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
-    }
-
-    
-    public void download(List<WaitListDto> queryAll, HttpServletResponse response) throws IOException {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (WaitListDto waitList : queryAll) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("Event ID", waitList.getEventId());
-            map.put("Player ID", waitList.getPlayerId());
-            map.put("Status", waitList.getStatus() != null ? waitList.getStatus().getDescription() : null);
-            map.put("Notes", waitList.getNotes());
-            map.put("Creation Time", waitList.getCreateTime());
-            list.add(map);
-        }
-        FileUtil.downloadExcel(list, response);
     }
     
     /**

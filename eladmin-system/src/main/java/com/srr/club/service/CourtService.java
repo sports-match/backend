@@ -13,10 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -69,19 +65,5 @@ public class CourtService {
             courtRepository.deleteById(id);
         }
         return ExecutionResult.of(null, Map.of("count", ids.length, "ids", ids));
-    }
-
-    public void download(List<CourtDto> all, HttpServletResponse response) throws IOException {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (CourtDto court : all) {
-            Map<String,Object> map = new LinkedHashMap<>();
-            map.put(" clubId",  court.getClubId());
-            map.put(" sportId",  court.getSportId());
-            map.put("创建时间", court.getCreateTime());
-            map.put("更新时间", court.getUpdateTime());
-            map.put("数量", court.getAmount());
-            list.add(map);
-        }
-        FileUtil.downloadExcel(list, response);
     }
 }

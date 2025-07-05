@@ -16,9 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.criteria.Predicate;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -104,25 +104,5 @@ public class ClubService {
             clubRepository.deleteById(id);
         }
         return ExecutionResult.of(null, Map.of("count", ids.length, "ids", ids));
-    }
-
-
-    public void download(List<ClubDto> all, HttpServletResponse response) throws IOException {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (ClubDto club : all) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("名称", club.getName());
-            map.put("描述", club.getDescription());
-            map.put("创建时间", club.getCreateTime());
-            map.put("更新时间", club.getUpdateTime());
-            map.put("图标", club.getIcon());
-            map.put("排序", club.getSort());
-            map.put("是否启用", club.getEnabled());
-            map.put("位置", club.getLocation());
-            map.put("经度", club.getLongitude());
-            map.put("纬度", club.getLatitude());
-            list.add(map);
-        }
-        FileUtil.downloadExcel(list, response);
     }
 }
