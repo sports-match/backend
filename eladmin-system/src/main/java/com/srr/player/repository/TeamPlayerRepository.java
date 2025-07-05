@@ -19,8 +19,8 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long>, J
 
     TeamPlayer findByTeamIdAndPlayerId(Long teamId, Long playerId);
 
-    @Query("SELECT tp FROM TeamPlayer tp JOIN tp.team t WHERE t.event.id = :eventId AND tp.player.userId = :userId")
-    TeamPlayer findByEventIdAndPlayerUserId(@Param("eventId") Long eventId, @Param("userId") Long userId);
+    @Query("SELECT tp FROM TeamPlayer tp JOIN tp.team t WHERE t.event.id = :eventId AND tp.player.id = :playerId")
+    TeamPlayer findByEventIdAndPlayerId(@Param("eventId") Long eventId, @Param("playerId") Long playerId);
 
     @Query("SELECT tp FROM TeamPlayer tp JOIN tp.team t JOIN t.event e WHERE e.id = :eventId")
     List<TeamPlayer> findByEventId(@Param("eventId") Long eventId);

@@ -18,6 +18,7 @@ package com.srr.player.service;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.enumeration.TeamStatus;
+import com.srr.event.dto.EventCheckInDTO;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.TeamPlayerDto;
@@ -29,7 +30,7 @@ import com.srr.player.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
-import me.zhengjie.utils.SecurityUtils;
+import me.zhengjie.modules.system.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +51,7 @@ public class TeamPlayerService {
     private final TeamRepository teamRepository;
     private final TeamPlayerMapper teamPlayerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
+    private final UserRepository userRepository;
 
     /**
      * Get TeamPlayer by id
@@ -100,12 +102,12 @@ public class TeamPlayerService {
      * Check in TeamPlayer for event
      *
      * @param eventId ID of event
+     * @param request The request to check in
      * @return TeamPlayerDto
      */
     @Transactional
-    public TeamPlayerDto checkInForEvent(Long eventId) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
+    public TeamPlayerDto checkInForEvent(final Long eventId, final EventCheckInDTO request) {
+        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, request.playerId());
 
         if (teamPlayer == null) {
             throw new BadRequestException("You haven't registered for this event.");
@@ -269,7 +271,7 @@ public class TeamPlayerService {
     }
 
     public TeamPlayerStatus getTeamPlayerStatus(Long eventId, Long playerId) {
-        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, playerId);
+        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, playerId);
         if (teamPlayer == null) {
             return TeamPlayerStatus.NOT_REGISTERED;
         }
