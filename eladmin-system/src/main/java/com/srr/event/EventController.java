@@ -145,8 +145,8 @@ public class EventController {
     @Log("Check-in for event")
     @ApiOperation("Check-in for event")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<Object> checkInForEvent(@PathVariable Long id) {
-        final TeamPlayerDto result = teamPlayerService.checkInForEvent(id);
+    public ResponseEntity<Object> checkInForEvent(@PathVariable Long id, @RequestBody EventCheckInDTO request) {
+        final TeamPlayerDto result = teamPlayerService.checkInForEvent(id, request);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 

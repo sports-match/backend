@@ -192,7 +192,7 @@ public class EventService {
     public EventDto create(EventDto resource) {
         validateEventTime(resource);//validate event time
         validateMaxParticipants(resource);// validate minimum participants
-        
+
         Long currentUserId = SecurityUtils.getCurrentUserId();
         var event = eventMapper.toEntity(resource);
 
@@ -404,7 +404,7 @@ public class EventService {
         }
 
         // Check if player is on the main list
-        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerUserId(eventId, currentUserId);
+        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, currentUserId);
         if (teamPlayer != null) {
             teamPlayer.setStatus(TeamPlayerStatus.WITHDRAWN);
             teamPlayerRepository.save(teamPlayer);
