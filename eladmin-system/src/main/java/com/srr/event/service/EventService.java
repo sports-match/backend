@@ -43,7 +43,6 @@ import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Subquery;
-import javax.validation.Valid;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
@@ -56,6 +55,9 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class EventService {
+    private static final Map<Format, Integer> EVENT_FORMAT_PLAYERS = Map.of(
+            Format.SINGLE, 2,
+            Format.DOUBLE, 4);
     private static final String EVENT_BASE_URL = "https://sportrevive.com/events/";
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
@@ -187,8 +189,10 @@ public class EventService {
      * @return EventDto
      */
     @Transactional(rollbackFor = Exception.class)
-    public EventDto create(@Valid EventDto resource) {
-        validateEventTime(resource);
+    public EventDto create(EventDto resource) {
+        validateEventTime(resource);//validate event time
+        validateMaxParticipants(resource);// validate minimum participants
+        
         Long currentUserId = SecurityUtils.getCurrentUserId();
         var event = eventMapper.toEntity(resource);
 
@@ -230,6 +234,18 @@ public class EventService {
         String eventLink = EVENT_BASE_URL + eventResult.getId();
         responseDto.setPublicLink(eventLink);
         return responseDto;
+    }
+
+    /**
+     * The function to validate minimum number of participants in the event
+     *
+     * @param resource The event resource to be validated
+     */
+    private void validateMaxParticipants(EventDto resource) {
+        final int minParticipants = EVENT_FORMAT_PLAYERS.get(resource.getFormat()) * resource.getGroupCount();
+        if (resource.getMaxParticipants() != null && resource.getMaxParticipants() < minParticipants) {
+            throw new BadRequestException("Max participants must be at least " + minParticipants);
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -7,6 +7,7 @@ import com.srr.enumeration.TeamPlayerStatus;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
@@ -83,6 +84,7 @@ public class EventDto extends EventTimeDto implements Serializable {
 
     @ApiModelProperty(value = "Number of groups", required = true)
     @NotNull(message = "Number of groups is mandatory")
+    @Min(value = 1, message = "Number of groups must be at least 1")
     private Integer groupCount;
 
     private String posterImage;
@@ -92,6 +94,7 @@ public class EventDto extends EventTimeDto implements Serializable {
 
     @ApiModelProperty(value = "Maximum number of participants", required = true)
     @NotNull(message = "Max participants is mandatory")
+    @Min(value = 1, message = "Number of max participants must be at least 1")
     private Integer maxParticipants;
 
     @ApiModelProperty(value = "Co-host organizers of the event")
