@@ -137,6 +137,7 @@ public class TeamPlayerService {
                 .map(Team::getTeamPlayers)
                 .filter(players -> players != null && !players.isEmpty() && players.get(0) != null)
                 .map(teamPlayers -> {
+                    teamPlayers.sort((p1, p2) -> p2.getId().compareTo(p1.getId()));
                     final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
                     PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer());
                     final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
