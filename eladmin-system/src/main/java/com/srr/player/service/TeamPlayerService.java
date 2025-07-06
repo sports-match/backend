@@ -137,14 +137,16 @@ public class TeamPlayerService {
                 .map(Team::getTeamPlayers)
                 .filter(players -> players != null && !players.isEmpty() && players.get(0) != null)
                 .map(teamPlayers -> {
-                    PlayerDto mainPlayerDto = playerMapper.toDto(teamPlayers.get(0).getPlayer());
-                    PlayerDto partnerDto = (teamPlayers.size() > 1 && teamPlayers.get(1) != null)
-                            ? playerMapper.toDto(teamPlayers.get(1).getPlayer())
+                    final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
+                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer());
+                    final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
+                    PlayerDto partnerDto = (partnerTeamPlayer != null)
+                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer())
                             : null;
-                    
+
                     TeamStatus status = teamPlayers.get(0).getTeam().getStatus();
                     final Long sportId = teamPlayers.get(0).getTeam().getEvent().getSportId();
-                    return teamPlayerMapper.toDto(mainPlayerDto, partnerDto, status, sportId);
+                    return teamPlayerMapper.toDto(mainPlayerDto, partnerDto, status, sportId, mainTeamPlayer.getTeam());
                 })
                 .sorted((t1, t2) -> { // Rank teams by combine score
                     Double score1 = t1.getCombinedScore() != null ? t1.getCombinedScore() : 0.0;
@@ -207,7 +209,6 @@ public class TeamPlayerService {
             throw new BadRequestException("Player could not be assigned to target team");
         }
         // Return updated TeamPlayer info
-        System.out.println("Player " + playerId + " assigned to team " + targetTeamId);
         TeamPlayer updated = teamPlayerRepository.findByTeamIdAndPlayerId(targetTeamId, playerId);
         return teamPlayerMapper.toDto(updated);
     }

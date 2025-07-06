@@ -1,6 +1,7 @@
 package com.srr.player.mapper;
 
 import com.srr.enumeration.TeamStatus;
+import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.PlayerSportRatingDto;
@@ -26,9 +27,9 @@ public interface TeamPlayerMapper extends BaseMapper<TeamPlayerDto, TeamPlayer> 
     @Mapping(target = "player", source = "player")
     @Mapping(target = "partner", source = "partner")
     @Mapping(target = "status", source = "teamStatus")
-    @Mapping(target = "teamId", source = "player.id")
+    @Mapping(target = "teamId", source = "team.id")
     @Mapping(target = "combinedScore", expression = "java(calculateCombinedScore(player, partner, sportId))")
-    TeamPlayerDto toDto(PlayerDto player, PlayerDto partner, TeamStatus teamStatus, Long sportId);
+    TeamPlayerDto toDto(PlayerDto player, PlayerDto partner, TeamStatus teamStatus, Long sportId, Team team);
 
     /**
      * Calculate the combined score known as the average score for the team
