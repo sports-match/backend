@@ -18,7 +18,7 @@ package com.srr.player.service;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.enumeration.TeamStatus;
-import com.srr.event.dto.EventCheckInDTO;
+import com.srr.event.dto.EventActionDTO;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.TeamPlayerDto;
@@ -106,7 +106,7 @@ public class TeamPlayerService {
      * @return TeamPlayerDto
      */
     @Transactional
-    public TeamPlayerDto checkInForEvent(final Long eventId, final EventCheckInDTO request) {
+    public TeamPlayerDto checkInForEvent(final Long eventId, final EventActionDTO request) {
         TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, request.playerId());
 
         if (teamPlayer == null) {

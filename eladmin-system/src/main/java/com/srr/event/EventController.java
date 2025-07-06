@@ -136,8 +136,8 @@ public class EventController {
     @Log("Withdraw from event")
     @ApiOperation("Withdraw from event")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<Object> withdrawFromEvent(@PathVariable Long id) {
-        final EventDto result = eventService.withdrawFromEvent(id);
+    public ResponseEntity<Object> withdrawFromEvent(@PathVariable Long id, @RequestBody EventActionDTO request) {
+        final EventDto result = eventService.withdrawFromEvent(id, request);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -145,7 +145,7 @@ public class EventController {
     @Log("Check-in for event")
     @ApiOperation("Check-in for event")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<Object> checkInForEvent(@PathVariable Long id, @RequestBody EventCheckInDTO request) {
+    public ResponseEntity<Object> checkInForEvent(@PathVariable Long id, @RequestBody EventActionDTO request) {
         final TeamPlayerDto result = teamPlayerService.checkInForEvent(id, request);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }

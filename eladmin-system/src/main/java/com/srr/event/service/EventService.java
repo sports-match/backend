@@ -333,14 +333,13 @@ public class EventService {
             throw new BadRequestException("Player is already registered for this event");
         }
 
-        boolean isWaitList = joinEventDto.getJoinWaitList() != null && joinEventDto.getJoinWaitList();
-        if (event.getMaxParticipants() != null &&
-                (event.getCurrentParticipants() != null && event.getCurrentParticipants() >= event.getMaxParticipants()) &&
-                !isWaitList) {
-            if (!event.isAllowWaitList()) {
-                throw new BadRequestException("Event is full and does not allow waitlist");
-            }
+        // Allow waitlist if current participants are over max participants & event allows waitlist.
+        boolean isWaitList = false;
+        final int currentParticipants = event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants();
+        if (currentParticipants < event.getMaxParticipants() && event.isAllowWaitList()) {
             isWaitList = true;
+        } else if (currentParticipants >= event.getMaxParticipants() && !event.isAllowWaitList()) {
+            throw new BadRequestException("Event is full and does not allow waitlist");
         }
 
         // Remove teamId logic: always create a new team for the player
@@ -394,8 +393,7 @@ public class EventService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public EventDto withdrawFromEvent(Long eventId) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
+    public EventDto withdrawFromEvent(Long eventId, EventActionDTO request) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(eventId)));
 
@@ -404,7 +402,7 @@ public class EventService {
         }
 
         // Check if player is on the main list
-        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, currentUserId);
+        TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, request.playerId());
         if (teamPlayer != null) {
             teamPlayer.setStatus(TeamPlayerStatus.WITHDRAWN);
             teamPlayerRepository.save(teamPlayer);
@@ -435,7 +433,7 @@ public class EventService {
             }
         } else {
             // Check if player is on the waitlist
-            WaitList waitListEntry = waitListRepository.findByEventIdAndPlayerId(eventId, currentUserId);
+            WaitList waitListEntry = waitListRepository.findByEventIdAndPlayerId(eventId, request.playerId());
             if (waitListEntry != null) {
                 waitListRepository.delete(waitListEntry);
             } else {
