@@ -21,8 +21,10 @@ import com.srr.enumeration.TeamStatus;
 import com.srr.event.dto.EventActionDTO;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
+import com.srr.player.dto.PlayerDto;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.dto.TeamPlayerReassignDto;
+import com.srr.player.mapper.PlayerMapper;
 import com.srr.player.mapper.TeamPlayerMapper;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
@@ -30,12 +32,13 @@ import com.srr.player.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
-import me.zhengjie.modules.system.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -51,7 +54,7 @@ public class TeamPlayerService {
     private final TeamRepository teamRepository;
     private final TeamPlayerMapper teamPlayerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
-    private final UserRepository userRepository;
+    private final PlayerMapper playerMapper;
 
     /**
      * Get TeamPlayer by id
@@ -124,11 +127,35 @@ public class TeamPlayerService {
      */
     @Transactional(readOnly = true)
     public List<TeamPlayerDto> findByEventId(Long eventId) {
-        List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
-        return teamPlayers.stream()
-                .map(teamPlayerMapper::toDto)
+        List<Team> teams = teamRepository.findByEventId(eventId);
+        if (teams == null || teams.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return teams.stream()
+                .filter(Objects::nonNull)
+                .map(Team::getTeamPlayers)
+                .filter(players -> players != null && !players.isEmpty() && players.get(0) != null)
+                .map(teamPlayers -> {
+                    final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
+                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer());
+                    final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
+                    PlayerDto partnerDto = (partnerTeamPlayer != null)
+                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer())
+                            : null;
+
+                    TeamStatus status = teamPlayers.get(0).getTeam().getStatus();
+                    final Long sportId = teamPlayers.get(0).getTeam().getEvent().getSportId();
+                    return teamPlayerMapper.toDto(mainPlayerDto, partnerDto, status, sportId, mainTeamPlayer.getTeam());
+                })
+                .sorted((t1, t2) -> { // Rank teams by combine score
+                    Double score1 = t1.getCombinedScore() != null ? t1.getCombinedScore() : 0.0;
+                    Double score2 = t2.getCombinedScore() != null ? t2.getCombinedScore() : 0.0;
+                    return score2.compareTo(score1);
+                })
                 .collect(Collectors.toList());
     }
+
 
     /**
      * Update team averageScore, updateTime, and checked-in/registered status based on current players.

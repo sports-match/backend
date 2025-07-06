@@ -7,10 +7,10 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
-* @description /
-* @author Chanheng
-* @date 2025-05-25
-**/
+ * @author Chanheng
+ * @description /
+ * @date 2025-05-25
+ **/
 @Data
 public class TeamPlayerDto implements Serializable {
 
@@ -29,4 +29,9 @@ public class TeamPlayerDto implements Serializable {
     private Boolean isCheckedIn;
 
     private TeamPlayerStatus status;
+
+    private PlayerDto partner;
+
+    @ApiModelProperty(value = "Combine average score for the team")
+    private Double combinedScore;
 }
