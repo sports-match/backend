@@ -39,13 +39,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Subquery;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Chanheng
@@ -147,6 +147,7 @@ public class EventService {
     private Specification<Event> buildEventSpecification(EventQueryCriteria criteria) {
         return (root, query, builder) -> {
             Predicate predicate = QueryHelp.getPredicate(root, criteria, builder);
+
             if (criteria.getEventTimeFilter() != null) {
                 Timestamp now = new Timestamp(System.currentTimeMillis());
                 if (criteria.getEventTimeFilter() == EventTimeFilter.UPCOMING) {
@@ -156,26 +157,39 @@ public class EventService {
                 }
             }
 
-            // If the current user is an event organizer, only show events that are either theirs or co-hosted
             final EventOrganizer eventOrganizer = eventOrganizerService.findCurrentUserEventOrganizer();
             if (eventOrganizer != null) {
-                Subquery<Long> subquery = query.subquery(Long.class);
-                Root<Event> eventRoot = subquery.from(Event.class);
-                Join<Event, EventCoHostOrganizer> ecoJoin = eventRoot.join("eventCoHostOrganizers");
+                Set<Long> clubIds = eventOrganizer.getClubs().stream()
+                        .map(Club::getId)
+                        .collect(Collectors.toSet());
 
-                subquery.select(eventRoot.get("id"))
-                        .where(builder.equal(ecoJoin.get("event").get("id"), root.get("id")));
+                // Subquery for co-hosted events
+                Subquery<Long> coHostSubquery = query.subquery(Long.class);
+                Root<EventCoHostOrganizer> coHostRoot = coHostSubquery.from(EventCoHostOrganizer.class);
+                coHostSubquery.select(coHostRoot.get("event").get("id"))
+                        .where(builder.equal(coHostRoot.get("eventOrganizer").get("id"), eventOrganizer.getId()));
 
+                Predicate isMainOrganizer = builder.equal(root.get("organizer").get("id"), eventOrganizer.getId());
+
+                Predicate isNullOrganizerWithMatchingClub = builder.and(
+                        builder.isNull(root.get("organizer")),
+                        !clubIds.isEmpty() ? root.get("club").get("id").in(clubIds) : builder.disjunction()
+                );
+
+                Predicate isCoHost = root.get("id").in(coHostSubquery);
                 predicate = builder.and(predicate,
                         builder.or(
-                                builder.equal(root.get("organizer").get("id"), eventOrganizer.getId()),
-                                root.get("id").in(subquery.getSelection())
+                                isMainOrganizer,
+                                isNullOrganizerWithMatchingClub,
+                                isCoHost
                         )
                 );
             }
+
             return predicate;
         };
     }
+
 
     @Transactional
     public EventDto findById(Long id) {
@@ -324,7 +338,7 @@ public class EventService {
             throw new BadRequestException("This event is private. Joining is not allowed.");
         }
 
-        if (event.getStatus() != EventStatus.PUBLISHED) {
+        if (event.getStatus() != EventStatus.PUBLISHED && event.getStatus() != EventStatus.CHECK_IN) {
             throw new BadRequestException("Event is not open for joining");
         }
 

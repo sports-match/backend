@@ -15,6 +15,7 @@
  */
 package com.srr.organizer.dto;
 
+import com.srr.enumeration.VerificationStatus;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import me.zhengjie.annotation.Query;
@@ -28,7 +29,6 @@ import java.util.List;
  */
 @Data
 public class EventOrganizerQueryCriteria {
-
     @Query
     private Long id;
 
@@ -51,4 +51,7 @@ public class EventOrganizerQueryCriteria {
     @Query(propName = "username", joinName = "user", type = Query.Type.INNER_LIKE)
     @ApiModelProperty(value = "Username of organizer")
     private String username;
+
+    @Query(type = Query.Type.EQUAL)
+    private VerificationStatus verificationStatus = VerificationStatus.VERIFIED;
 }
