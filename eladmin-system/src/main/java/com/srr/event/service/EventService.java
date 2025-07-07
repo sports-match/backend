@@ -610,7 +610,6 @@ public class EventService {
     /**
      * The function to relocate a team from one group to another
      *
-     * @param eventId ID of the event of the team to be relocated
      * @param request The team and group information to be relocated
      */
     @Transactional
