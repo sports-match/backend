@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -44,6 +43,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
                      LEFT JOIN team_player tpb ON tb.id = tpb.team_id
             WHERE tpa.player_id = :playerId
                OR tpb.player_id = :playerId
+            ORDER BY em.id DESC LIMIT 1
             """, nativeQuery = true)
     Match getByPlayerId(@Param("playerId") Long playerId);
 
