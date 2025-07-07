@@ -1,6 +1,5 @@
 package com.srr.event.dto;
 
-import com.srr.event.dto.MatchDto;
 import com.srr.player.dto.TeamDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -9,10 +8,10 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
-* @description /
-* @author Chanheng
-* @date 2025-05-25
-**/
+ * @author Chanheng
+ * @description /
+ * @date 2025-05-25
+ **/
 @Data
 public class MatchGroupDto implements Serializable {
 
@@ -24,14 +23,19 @@ public class MatchGroupDto implements Serializable {
 
     @ApiModelProperty(value = "Event id")
     private Long eventId;
-    
+
     @ApiModelProperty(value = "Group team size")
     private Integer groupTeamSize;
 
     @ApiModelProperty(value = "Court numbers")
     private String courtNumbers;
 
+    @ApiModelProperty(value = "Group status")
+    private boolean isFinalized;
+
     private List<TeamDto> teams;
+
+    private Integer matchCount;
 
     // For event results API: matches in this group
     private List<MatchDto> matches;

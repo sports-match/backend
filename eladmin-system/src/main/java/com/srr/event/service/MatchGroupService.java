@@ -43,19 +43,19 @@ public class MatchGroupService {
         // Find the event
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", eventId.toString()));
-        
+
         // Check if the event has a group count
         if (event.getGroupCount() == null || event.getGroupCount() <= 0) {
             throw new BadRequestException("Event has no valid group count defined");
         }
-        
+
         // Get all teams for the event
         List<Team> teams = event.getTeams();
-        
+
         if (teams.isEmpty()) {
             throw new BadRequestException("No teams found for event with ID: " + eventId);
         }
-        
+
         // Clear existing match groups for this event
         List<MatchGroup> existingGroups = event.getMatchGroups();
         if (existingGroups != null && !existingGroups.isEmpty()) {
@@ -67,15 +67,15 @@ public class MatchGroupService {
                 matchGroupRepository.delete(group);
             }
         }
-        
+
         // Filter to only checked-in teams
         List<Team> checkedInTeams = teams.stream()
-            .filter(t -> t.getStatus() == com.srr.enumeration.TeamStatus.CHECKED_IN)
-            .collect(Collectors.toList());
+                .filter(t -> t.getStatus() == com.srr.enumeration.TeamStatus.CHECKED_IN)
+                .collect(Collectors.toList());
         // Find teams that are REGISTERED (not withdrawn, not checked-in)
         List<Team> notCheckedInTeams = teams.stream()
-            .filter(t -> t.getStatus() == com.srr.enumeration.TeamStatus.REGISTERED)
-            .collect(Collectors.toList());
+                .filter(t -> t.getStatus() == com.srr.enumeration.TeamStatus.REGISTERED)
+                .collect(Collectors.toList());
         if (!notCheckedInTeams.isEmpty()) {
             //String notCheckedInNames = notCheckedInTeams.stream().map(Team::getName).collect(Collectors.joining(", "));
             throw new BadRequestException("The teams are registered but not checked in. All teams must be checked in before group formation.");
@@ -87,11 +87,11 @@ public class MatchGroupService {
         List<Team> sortedTeams = checkedInTeams.stream()
                 .sorted(Comparator.comparing(Team::getAverageScore, Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
-        
+
         // Group teams based on their sorted order and the target group count
         int targetGroupCount = event.getGroupCount();
         List<List<Team>> teamGroups = createTeamGroups(sortedTeams, targetGroupCount);
-        
+
         // Create match groups
         for (int i = 0; i < teamGroups.size(); i++) {
             List<Team> teamGroup = teamGroups.get(i);
@@ -100,10 +100,10 @@ public class MatchGroupService {
                 createMatchGroup(event, teamGroup, "Group " + (i + 1), teamGroup.size(), defaultCourts);
             }
         }
-        
+
         return teamGroups.size();
     }
-    
+
     /**
      * Group teams by rating: highest rated teams in group 1, next highest in group 2, etc.
      */
@@ -122,7 +122,7 @@ public class MatchGroupService {
         }
         return groups;
     }
-    
+
     /**
      * Create a match group from a list of teams
      */
@@ -148,7 +148,13 @@ public class MatchGroupService {
      */
     public void updateCourtNumbers(Long matchGroupId, String courtNumbers) {
         MatchGroup matchGroup = matchGroupRepository.findById(matchGroupId)
-            .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", matchGroupId.toString()));
+                .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", matchGroupId.toString()));
+
+        final boolean isFinalized = matchGroup.getIsFinalized();
+        if (isFinalized) {
+            throw new BadRequestException("Cannot update court numbers for a finalized group.");
+        }
+
         matchGroup.setCourtNumbers(courtNumbers);
         matchGroupRepository.save(matchGroup);
     }
@@ -159,13 +165,15 @@ public class MatchGroupService {
     @Transactional
     public void moveTeamToGroup(Long teamId, Long targetGroupId) {
         Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
+                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
         MatchGroup targetGroup = matchGroupRepository.findById(targetGroupId)
-            .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", targetGroupId.toString()));
+                .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", targetGroupId.toString()));
         MatchGroup currentGroup = team.getMatchGroup();
+
         if (currentGroup == null) {
             throw new BadRequestException("Team is not currently assigned to any group.");
         }
+        
         if (currentGroup.getId().equals(targetGroupId)) {
             throw new BadRequestException("Team is already in the target group.");
         }

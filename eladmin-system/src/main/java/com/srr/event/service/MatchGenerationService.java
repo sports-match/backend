@@ -7,6 +7,7 @@ import com.srr.event.repository.MatchRepository;
 import com.srr.player.domain.Team;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.zhengjie.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,11 @@ public class MatchGenerationService {
         if (matchGroups.isEmpty()) {
             log.warn("No match groups found for event {}, cannot generate matches.", eventId);
             return;
+        }
+
+        final boolean allGroupsFinalized = matchGroups.stream().allMatch(MatchGroup::getIsFinalized);
+        if (!allGroupsFinalized) {
+            throw new BadRequestException("All groups must be finalized before generating matches.");
         }
 
         int totalMatchesGenerated = 0;

@@ -585,6 +585,90 @@ public class EventService {
         return ExecutionResult.of(id, Map.of("remindersSent", recipientEmails.size()));
     }
 
+    /**
+     * The function to finalize all groups for the event. No changes allowed after this.
+     *
+     * @param eventId ID of the event to be finalized the groups
+     */
+    @Transactional
+    public void finalizedGroup(Long eventId) {
+        final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        // Check if all groups have been finalized
+        final boolean allGroupFinalized = matchGroup
+                .stream().allMatch(MatchGroup::getIsFinalized);
+
+        if (allGroupFinalized) {
+            throw new BadRequestException("All groups have already been finalized");
+        }
+
+        final var updatedGroup = matchGroup
+                .stream()
+                .peek(group -> group.setIsFinalized(true)).toList();
+        matchGroupRepository.saveAll(updatedGroup);
+    }
+
+    /**
+     * The function to relocate a team from one group to another
+     *
+     * @param eventId ID of the event of the team to be relocated
+     * @param request The team and group information to be relocated
+     */
+    @Transactional
+    public void relocateTeam(final Long eventId, final TeamRelocationDTO request) {
+        final var matchGroups = matchGroupRepository.findAllByEventId(eventId);
+
+        // Check if the target group exists in the event and is not full
+        final var targetGroupOpt = matchGroups.stream()
+                .filter(group -> group.getId().equals(request.getTargetGroupId()))
+                .findFirst();
+
+        if (targetGroupOpt.isEmpty()) {
+            throw new BadRequestException("Target group does not exist or is not in the event");
+        }
+
+        if (targetGroupOpt.get().getIsFinalized()) {
+            throw new BadRequestException("Cannot relocate to a finalized group");
+        }
+
+        final var targetGroup = targetGroupOpt.get();
+        if (targetGroup.getGroupTeamSize() == targetGroup.getTeams().size()) {
+            throw new BadRequestException("Target group is full");
+        }
+
+        // Find which group currently contains the team
+        final var teamId = request.getTeamId();
+        final var sourceGroupOpt = matchGroups.stream()
+                .filter(group -> group.getTeams().stream()
+                        .anyMatch(team -> team.getId().equals(teamId)))
+                .findFirst();
+
+        if (sourceGroupOpt.isEmpty()) {
+            throw new BadRequestException("Team not found in any group of this event");
+        }
+
+        if (sourceGroupOpt.get().getId().equals(request.getTargetGroupId())) {
+            throw new BadRequestException("Relocation to the same group is not allowed");
+        }
+
+        final var sourceGroup = sourceGroupOpt.get();
+
+        // Move team from source to target group
+        final var teamToMove = sourceGroup.getTeams().stream()
+                .filter(team -> team.getId().equals(teamId))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId));
+
+        if (teamToMove.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
+            throw new BadRequestException("Only checked-in teams can be moved between groups.");
+        }
+
+        sourceGroup.getTeams().remove(teamToMove);
+        targetGroup.getTeams().add(teamToMove);
+
+        // Save changes
+        matchGroupRepository.saveAll(List.of(sourceGroup, targetGroup));
+    }
+
     @Transactional
     public List<MatchGroupDto> findGroup(Long eventId) {
         final var matchGroup = matchGroupRepository.findAllByEventId(eventId);

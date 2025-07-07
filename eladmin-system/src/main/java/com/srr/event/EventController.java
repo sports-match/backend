@@ -203,6 +203,28 @@ public class EventController {
         return new ResponseEntity<>(eventService.findGroup(id), HttpStatus.OK);
     }
 
+    @PostMapping("/{id}/teams/relocate")
+    @ApiOperation("Relocate one team from one group to another")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Organizer')")
+    public ResponseEntity<Object> relocateTeam(@PathVariable Long id, @Validated @RequestBody TeamRelocationDTO request) {
+        eventService.relocateTeam(id, request);
+        final var map = new HashMap<String, Object>();
+        map.put("eventId", id);
+        map.put("message", "Successfully relocated the team");
+        return new ResponseEntity<>(map, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/groups/finalized")
+    @ApiOperation("Finalize all groups for the event")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Organizer')")
+    public ResponseEntity<Object> finalizeGroup(@PathVariable Long id) {
+        eventService.finalizedGroup(id);
+        final var map = new HashMap<String, Object>();
+        map.put("eventId", id);
+        map.put("message", "Successfully finalized groups");
+        return new ResponseEntity<>(map, HttpStatus.OK);
+    }
+
     @GetMapping(value = "/{eventId}/groups/{groupId}/matches")
     @ApiOperation("Get all matches for a specific match group in an event")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
