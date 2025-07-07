@@ -36,7 +36,7 @@ public class MatchController {
         Match match = matchService.findById(id);
         return new ResponseEntity<>(matchMapper.toDto(match), HttpStatus.OK);
     }
-    
+
     @ApiOperation("Get all matches for the current user")
     @GetMapping("/my-matches")
     @PreAuthorize("hasAuthority('Organizer')")
@@ -54,10 +54,9 @@ public class MatchController {
     public ResponseEntity<MatchDto> updateMatchScore(
             @PathVariable Long matchId,
             @Validated @RequestBody MatchScoreUpdateDto scoreDto) {
-        
+
         // Set the match ID from the path variable
         scoreDto.setMatchId(matchId);
-        
         Match match = matchService.updateMatchScore(scoreDto);
         return new ResponseEntity<>(matchMapper.toDto(match), HttpStatus.OK);
     }

@@ -490,13 +490,14 @@ public class EventService {
         List<Long> failedDeletes = new ArrayList<>();
 
         for (Long id : ids) {
-            final boolean isSuccessfulDelete = successfulDelete(id);
-            if (isSuccessfulDelete) {
+            try {
+                successfulDelete(id);
                 successfulDeletes.add(id);
-            } else {
+            } catch (EntityNotFoundException e) {
                 failedDeletes.add(id);
             }
         }
+
         Map<String, Object> data = new HashMap<>();
         data.put("successfulDeletes", successfulDeletes.size());
         data.put("failedDeletes", failedDeletes.size());
@@ -514,10 +515,10 @@ public class EventService {
      * for any event with status PUBLISHED and CLOSED. Then it returns successful status or not
      *
      * @param id The event ID to be deleted
-     * @return boolean
      **/
-    private boolean successfulDelete(final Long id) {
+    private void successfulDelete(final Long id) {
         Optional<Event> eventOptional = eventRepository.findById(id);
+
         if (eventOptional.isPresent()) {
             Event event = eventOptional.get();
             if (event.getStatus() == EventStatus.PUBLISHED || event.getStatus() == EventStatus.CLOSED) {
@@ -530,12 +531,12 @@ public class EventService {
                 teamRepository.deleteByEventId(id);
                 waitListRepository.deleteByEventId(id);
                 eventRepository.deleteById(id);
-
-                return true;
             }
+
+            throw new BadRequestException("Cannot delete event with status " + event.getStatus());
         }
 
-        return false;
+        throw new EntityNotFoundException(Event.class, "id", String.valueOf(id));
     }
 
     private void validateOrganizerClubPermission(EventOrganizer organizer, Long clubId) {

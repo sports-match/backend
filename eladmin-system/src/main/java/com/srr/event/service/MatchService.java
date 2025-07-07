@@ -70,7 +70,7 @@ public class MatchService {
         boolean isOrganizer = false;
         if (userDetails != null && userDetails.getAuthorities() != null) {
             isOrganizer = userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("Organizer"));
+                    .anyMatch(a -> a.getAuthority().equals("Organizer"));
         }
 
         boolean isInMatch = false;
@@ -120,7 +120,7 @@ public class MatchService {
     }
 
     private void validateBadmintonScore(int scoreA, int scoreB) {
-        if ((scoreA < 21 && scoreB < 21) || Math.abs(scoreA - scoreB) < 2) {
+        if ((scoreA != 0 && scoreB != 0) && (scoreA < 21 && scoreB < 21) || Math.abs(scoreA - scoreB) < 2) {
             throw new BadRequestException("Invalid badminton score: winner must have at least 21 points and lead by at least 2.");
         }
     }
@@ -285,14 +285,14 @@ public class MatchService {
                         .filter(Objects::nonNull)
                         .toList();
                 if (teamARatings.size() == 2 && teamBRatings.size() == 2) {
-                    double[] oldScores = { teamARatings.get(0).getRateScore(), teamARatings.get(1).getRateScore(), teamBRatings.get(0).getRateScore(), teamBRatings.get(1).getRateScore() };
+                    double[] oldScores = {teamARatings.get(0).getRateScore(), teamARatings.get(1).getRateScore(), teamBRatings.get(0).getRateScore(), teamBRatings.get(1).getRateScore()};
                     ratingService.updateRatingsForDoubles(teamARatings, teamBRatings, match.getScoreA(), match.getScoreB());
                     playerSportRatingRepository.saveAll(teamARatings);
                     playerSportRatingRepository.saveAll(teamBRatings);
                     // Save to rating history
                     for (int i = 0; i < 2; i++) {
                         saveRatingHistory(teamAPlayers.get(i).getPlayer(), teamARatings.get(i), oldScores[i], match);
-                        saveRatingHistory(teamBPlayers.get(i).getPlayer(), teamBRatings.get(i), oldScores[2+i], match);
+                        saveRatingHistory(teamBPlayers.get(i).getPlayer(), teamBRatings.get(i), oldScores[2 + i], match);
                     }
                 }
             }
@@ -330,7 +330,9 @@ public class MatchService {
         log.info("Match {} marked as WITHDRAWN", matchId);
     }
 
-    public List<Match> findAllMatches() { return matchRepository.findAll(); }
+    public List<Match> findAllMatches() {
+        return matchRepository.findAll();
+    }
 
     public List<Match> findMatchesByEventId(Long eventId) {
         return matchRepository.findByMatchGroupEventId(eventId);
