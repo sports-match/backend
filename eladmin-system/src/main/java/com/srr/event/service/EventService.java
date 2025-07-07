@@ -568,7 +568,7 @@ public class EventService {
 
         // Get all emails of players to be reminded
         List<String> recipientEmails = playersToRemind.stream()
-                .map(teamPlayer -> userRepository.findById(teamPlayer.getPlayer().getUserId()).orElse(null))
+                .map(teamPlayer -> userRepository.findById(teamPlayer.getPlayer().getUser().getId()).orElse(null))
                 .filter(Objects::nonNull)
                 .map(me.zhengjie.modules.system.domain.User::getEmail)
                 .toList();
@@ -658,12 +658,15 @@ public class EventService {
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId));
 
-        if (teamToMove.getStatus() != com.srr.enumeration.TeamStatus.CHECKED_IN) {
+        if (teamToMove.getStatus() != TeamStatus.CHECKED_IN) {
             throw new BadRequestException("Only checked-in teams can be moved between groups.");
         }
 
         sourceGroup.getTeams().remove(teamToMove);
         targetGroup.getTeams().add(teamToMove);
+
+        System.out.println("Source group: " + sourceGroup);
+        System.out.println("Target group: " + targetGroup);
 
         // Save changes
         matchGroupRepository.saveAll(List.of(sourceGroup, targetGroup));
@@ -684,9 +687,7 @@ public class EventService {
             var groupDto = matchGroupMapper.toDto(group);
             var matches = matchRepository.findAllByMatchGroupId(group.getId())
                     .stream()
-                    .map(match -> {
-                        return matchMapper.toDto(match);
-                    })
+                    .map(matchMapper::toDto)
                     .toList();
             groupDto.setMatches(matches);
             return groupDto;

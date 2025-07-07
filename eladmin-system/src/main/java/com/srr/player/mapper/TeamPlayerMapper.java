@@ -23,6 +23,17 @@ import java.util.Objects;
         uses = PlayerMapper.class,
         injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface TeamPlayerMapper extends BaseMapper<TeamPlayerDto, TeamPlayer> {
+    @Mapping(target = "id", source = "teamPlayer.id")
+    @Mapping(target = "score", expression = "java(calculateIndividualScore(player, sportId))")
+    TeamPlayerDto toTeamPlayerDto(TeamPlayer teamPlayer, PlayerDto player, String email, Long sportId);
+
+    default Double calculateIndividualScore(PlayerDto player, Long sportId) {
+        if (player == null) {
+            return 0.0;
+        }
+        return getPlayerRatingBySport(player, sportId);
+    }
+
     @Mapping(target = "id", source = "player.id")
     @Mapping(target = "player", source = "player")
     @Mapping(target = "partner", source = "partner")

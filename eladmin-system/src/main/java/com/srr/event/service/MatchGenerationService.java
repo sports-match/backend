@@ -50,6 +50,7 @@ public class MatchGenerationService {
         }
 
         int totalMatchesGenerated = 0;
+        System.out.println("Total match groups: " + matchGroups.size());
         // Generate matches for each group
         for (MatchGroup group : matchGroups) {
             totalMatchesGenerated += generateMatchesForGroup(group);

@@ -10,10 +10,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
-* @description /
-* @author Chanheng
-* @date 2025-05-18
-**/
+ * @author Chanheng
+ * @description /
+ * @date 2025-05-18
+ **/
 @Data
 public class PlayerDto implements Serializable {
 
@@ -40,12 +40,9 @@ public class PlayerDto implements Serializable {
 
     @ApiModelProperty(value = "更新时间")
     private Timestamp updateTime;
-
+    
     @ApiModelProperty(value = "评分")
     private Double rateScore;
-
-    @ApiModelProperty(value = "userId")
-    private Long userId;
 
     @ApiModelProperty(value = "性别")
     private Gender gender;

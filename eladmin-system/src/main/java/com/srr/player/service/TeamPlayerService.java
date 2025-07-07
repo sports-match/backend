@@ -18,6 +18,7 @@ package com.srr.player.service;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.enumeration.TeamStatus;
+import com.srr.event.domain.Event;
 import com.srr.event.dto.EventActionDTO;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
@@ -32,6 +33,8 @@ import com.srr.player.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
+import me.zhengjie.modules.security.service.enums.UserType;
+import me.zhengjie.modules.system.service.dto.UserDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +44,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static me.zhengjie.modules.security.service.SecurityContextUtils.getCurrentUser;
 
 /**
  * @author Chanheng
@@ -111,9 +116,26 @@ public class TeamPlayerService {
     @Transactional
     public TeamPlayerDto checkInForEvent(final Long eventId, final EventActionDTO request) {
         TeamPlayer teamPlayer = teamPlayerRepository.findByEventIdAndPlayerId(eventId, request.playerId());
-
         if (teamPlayer == null) {
             throw new BadRequestException("You haven't registered for this event.");
+        }
+
+        // Check-in validation for organizer in double format events
+        final UserDto currentUser = getCurrentUser();
+        if (currentUser != null && UserType.ORGANIZER.equals(currentUser.getUserType())) {
+            Team team = teamPlayer.getTeam();
+            Event event = team.getEvent();
+
+            if (Format.DOUBLE.equals(event.getFormat()) && team.getTeamSize() != 2) {
+                throw new BadRequestException("Cannot check in. A double format team must have exactly 2 players.");
+            }
+
+            final List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
+            for (TeamPlayer teamPlayer1 : teamPlayers) {
+                checkIn(teamPlayer1.getId());
+            }
+
+            return teamPlayerMapper.toDto(teamPlayer);
         }
 
         return checkIn(teamPlayer.getId());
@@ -123,8 +145,10 @@ public class TeamPlayerService {
     public List<TeamPlayerDto> findParticipantsByEventId(Long eventId) {
         List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
         return teamPlayers
-                .stream().map(teamPlayerMapper::toDto)
-                .collect(Collectors.toList());
+                .stream()
+                .map(teamPlayer -> teamPlayerMapper.toTeamPlayerDto(teamPlayer, playerMapper.toDto(teamPlayer.getPlayer())
+                        , teamPlayer.getPlayer().getUser().getEmail(), teamPlayer.getTeam().getEvent().getSportId()))
+                .toList();
     }
 
     /**

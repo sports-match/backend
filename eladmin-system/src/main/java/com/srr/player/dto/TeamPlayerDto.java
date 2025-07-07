@@ -25,6 +25,9 @@ public class TeamPlayerDto implements Serializable {
     @ApiModelProperty(value = "Score")
     private Double score;
 
+    @ApiModelProperty(value = "Player's email")
+    private String email;
+
     @ApiModelProperty(value = "Is checked in")
     private Boolean isCheckedIn;
 
