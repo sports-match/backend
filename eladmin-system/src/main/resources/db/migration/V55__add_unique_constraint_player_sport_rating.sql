@@ -8,4 +8,4 @@ WHERE p1.id > p2.id
 -- Add unique constraint on player_sport_rating table for columns (player_id, sport, format)
 ALTER TABLE player_sport_rating 
 ADD CONSTRAINT uk_player_sport_rating_player_sport_format 
-UNIQUE (player_id, sport, format);
+UNIQUE (player_id, sport_id, format);
