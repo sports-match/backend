@@ -614,62 +614,33 @@ public class EventService {
      * @param request The team and group information to be relocated
      */
     @Transactional
-    public void relocateTeam(final Long eventId, final TeamRelocationDTO request) {
-        final var matchGroups = matchGroupRepository.findAllByEventId(eventId);
+    public void relocateTeam(final TeamRelocationDTO request) {
+        final Long teamId = request.getTeamId();
+        final Long targetGroupId = request.getTargetGroupId();
 
-        // Check if the target group exists in the event and is not full
-        final var targetGroupOpt = matchGroups.stream()
-                .filter(group -> group.getId().equals(request.getTargetGroupId()))
-                .findFirst();
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
+        MatchGroup targetGroup = matchGroupRepository.findById(targetGroupId)
+                .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", targetGroupId.toString()));
 
-        if (targetGroupOpt.isEmpty()) {
-            throw new BadRequestException("Target group does not exist or is not in the event");
-        }
 
-        if (targetGroupOpt.get().getIsFinalized()) {
-            throw new BadRequestException("Cannot relocate to a finalized group");
-        }
-
-        final var targetGroup = targetGroupOpt.get();
-        if (targetGroup.getGroupTeamSize() == targetGroup.getTeams().size()) {
+        int currentTargetSize = teamRepository.countTeamByGroupId(request.getTargetGroupId());
+        if (currentTargetSize >= targetGroup.getGroupTeamSize()) {
             throw new BadRequestException("Target group is full");
         }
 
-        // Find which group currently contains the team
-        final var teamId = request.getTeamId();
-        final var sourceGroupOpt = matchGroups.stream()
-                .filter(group -> group.getTeams().stream()
-                        .anyMatch(team -> team.getId().equals(teamId)))
-                .findFirst();
-
-        if (sourceGroupOpt.isEmpty()) {
-            throw new BadRequestException("Team not found in any group of this event");
-        }
-
-        if (sourceGroupOpt.get().getId().equals(request.getTargetGroupId())) {
+        MatchGroup currentGroup = team.getMatchGroup();
+        if (currentGroup.getId().equals(request.getTargetGroupId())) {
             throw new BadRequestException("Relocation to the same group is not allowed");
         }
 
-        final var sourceGroup = sourceGroupOpt.get();
 
-        // Move team from source to target group
-        final var teamToMove = sourceGroup.getTeams().stream()
-                .filter(team -> team.getId().equals(teamId))
-                .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId));
-
-        if (teamToMove.getStatus() != TeamStatus.CHECKED_IN) {
+        if (team.getStatus() != TeamStatus.CHECKED_IN) {
             throw new BadRequestException("Only checked-in teams can be moved between groups.");
         }
 
-        sourceGroup.getTeams().remove(teamToMove);
-        targetGroup.getTeams().add(teamToMove);
-
-        System.out.println("Source group: " + sourceGroup);
-        System.out.println("Target group: " + targetGroup);
-
-        // Save changes
-        matchGroupRepository.saveAll(List.of(sourceGroup, targetGroup));
+        team.setMatchGroup(targetGroup);
+        teamRepository.save(team);
     }
 
     @Transactional

@@ -207,7 +207,7 @@ public class EventController {
     @ApiOperation("Relocate one team from one group to another")
     @PreAuthorize("hasAnyAuthority('Admin', 'Organizer')")
     public ResponseEntity<Object> relocateTeam(@PathVariable Long id, @Validated @RequestBody TeamRelocationDTO request) {
-        eventService.relocateTeam(id, request);
+        eventService.relocateTeam(request);
         final var map = new HashMap<String, Object>();
         map.put("eventId", id);
         map.put("message", "Successfully relocated the team");
