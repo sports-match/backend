@@ -119,6 +119,14 @@ public class TeamPlayerService {
         return checkIn(teamPlayer.getId());
     }
 
+    @Transactional(readOnly = true)
+    public List<TeamPlayerDto> findParticipantsByEventId(Long eventId) {
+        List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
+        return teamPlayers
+                .stream().map(teamPlayerMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Get TeamPlayer by event id
      *

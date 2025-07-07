@@ -157,6 +157,13 @@ public class EventController {
         return new ResponseEntity<>(teamPlayerService.findByEventId(eventId), HttpStatus.OK);
     }
 
+    @GetMapping("/{id}/participants")
+    @ApiOperation("Find all team participants in an event")
+    @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
+    public ResponseEntity<List<TeamPlayerDto>> findEventParticipants(@PathVariable("id") Long eventId) {
+        return new ResponseEntity<>(teamPlayerService.findParticipantsByEventId(eventId), HttpStatus.OK);
+    }
+
     @PostMapping("/{id}/generate-groups")
     @Log("Generate match groups")
     @ApiOperation("Generate match groups based on team scores")
@@ -230,4 +237,5 @@ public class EventController {
         final var result = eventService.remind(id, remindDto);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
 }
