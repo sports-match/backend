@@ -118,7 +118,7 @@ public class UserFacade {
         // Create player entity
         Player player = new Player();
         player.setName(user.getNickName());
-        player.setUserId(user.getId());
+        player.setUser(user);
         player.setDescription("Player created upon registration");
 
         // Save player - this will trigger role assignment via UserRoleSyncService
@@ -135,7 +135,7 @@ public class UserFacade {
         EventOrganizer organizer = new EventOrganizer();
         organizer.setUser(user);
         organizer.setDescription("Event organizer created upon registration");
-        
+
         // Save organizer - this will trigger role assignment via UserRoleSyncService
         eventOrganizerService.create(organizer);
         log.info("Created event organizer for user: {}", user.getUsername());

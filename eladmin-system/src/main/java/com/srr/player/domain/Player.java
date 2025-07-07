@@ -6,26 +6,26 @@ import com.srr.enumeration.Gender;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
+import me.zhengjie.modules.system.domain.User;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
 
 /**
-* @description
-* @author Chanheng
-* @date 2025-05-18
-**/
+ * @author Chanheng
+ * @description
+ * @date 2025-05-18
+ **/
 @Entity
 @Getter
 @Setter
-@Table(name="player")
+@Table(name = "player")
 public class Player implements Serializable {
 
     @Id
@@ -65,10 +65,9 @@ public class Player implements Serializable {
     @ApiModelProperty(value = "Update time", hidden = true)
     private Timestamp updateTime;
 
-    @Column(name = "user_id", nullable = false)
-    @NotNull
-    @ApiModelProperty(value = "userId")
-    private Long userId;
+    @JoinColumn(name = "user_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    private User user;
 
     @Column(name = "gender")
     @Enumerated(EnumType.STRING)
@@ -82,7 +81,7 @@ public class Player implements Serializable {
     @OneToMany(mappedBy = "player")
     private List<PlayerSportRating> playerSportRating;
 
-    public void copy(Player source){
-        BeanUtil.copyProperties(source,this, CopyOptions.create().setIgnoreNullValue(true));
+    public void copy(Player source) {
+        BeanUtil.copyProperties(source, this, CopyOptions.create().setIgnoreNullValue(true));
     }
 }
