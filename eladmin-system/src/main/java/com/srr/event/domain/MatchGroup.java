@@ -30,6 +30,10 @@ public class MatchGroup implements Serializable {
     @JoinColumn(name = "event_id")
     private Event event;
 
+    @Column(name = "is_finalized")
+    @ApiModelProperty(value = "Finalized status")
+    private Boolean isFinalized = false;
+
     // how many teams in one group
     @Column(name = "group_team_size")
     private int groupTeamSize;
