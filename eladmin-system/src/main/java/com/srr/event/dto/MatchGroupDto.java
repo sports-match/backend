@@ -39,4 +39,6 @@ public class MatchGroupDto implements Serializable {
 
     // For event results API: matches in this group
     private List<MatchDto> matches;
+
+    private List<MatrixDto> matrix;
 }
