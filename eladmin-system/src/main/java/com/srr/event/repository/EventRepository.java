@@ -1,4 +1,3 @@
-
 package com.srr.event.repository;
 
 import com.srr.enumeration.EventStatus;
@@ -46,7 +45,23 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     @Query(value = """
             select * from event e join team t on e.id = t.event_id
                          join team_player tp on t.id = tp.team_id and tp.player_id = :playerId 
-                                 and e.status = 'COMPLETED' order by e.id desc limit 1
-    """, nativeQuery = true)
+                                                                and date(e.event_time) > CURDATE() order by e.id desc
+            limit :limit
+            """, nativeQuery = true)
+    LinkedList<Event> getPlayerUpcomingEvents(Long playerId, Integer limit);
+
+    @Query(value = """
+            select * from event e join team t on e.id = t.event_id
+                         join team_player tp on t.id = tp.team_id and tp.player_id = :playerId 
+                                                                and date(e.event_time) < CURDATE() order by e.id desc
+            limit :limit
+            """, nativeQuery = true)
+    LinkedList<Event> getPlayerPastEvents(Long playerId, Integer limit);
+
+    @Query(value = """
+                    select * from event e join team t on e.id = t.event_id
+                                 join team_player tp on t.id = tp.team_id and tp.player_id = :playerId 
+                                         and e.status = 'COMPLETED' order by e.id desc limit 1
+            """, nativeQuery = true)
     Optional<Event> getPlayerLastEvent(Long playerId);
 }

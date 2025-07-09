@@ -9,6 +9,7 @@ import com.srr.event.service.MatchGroupService;
 import com.srr.event.service.MatchService;
 import com.srr.player.dto.TeamPlayerDto;
 import com.srr.player.repository.PlayerRepository;
+import com.srr.player.repository.RatingHistoryRepository;
 import com.srr.player.service.TeamPlayerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -17,6 +18,7 @@ import me.zhengjie.annotation.Log;
 import me.zhengjie.annotation.rest.AnonymousGetMapping;
 import me.zhengjie.modules.security.service.SecurityContextUtils;
 import me.zhengjie.modules.security.service.enums.UserType;
+import me.zhengjie.modules.system.service.dto.UserDto;
 import me.zhengjie.utils.PageResult;
 import me.zhengjie.utils.SecurityUtils;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +29,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,7 @@ public class EventController {
     private final MatchGenerationService matchGenerationService;
     private final PlayerRepository playerRepository;
     private final MatchService matchService;
+    private final RatingHistoryRepository ratingHistoryRepository;
 
     @GetMapping
     @ApiOperation("Query event")
@@ -60,13 +64,7 @@ public class EventController {
                 throw new RuntimeException("Current user is not found.");
             }
 
-            var player = playerRepository.findByUserId(user.getId());
-            if (player != null && UserType.PLAYER.equals(user.getUserType())) {
-                for (var event : result.getContent()) {
-                    var status = teamPlayerService.getTeamPlayerStatus(event.getId(), player.getId());
-                    event.setPlayerStatus(status);
-                }
-            }
+            setPlayerMatchInformation(user, result, criteria.getPlayerId());
         } else {
             for (var event : result.getContent()) {
                 event.setPlayerStatus(TeamPlayerStatus.NOT_REGISTERED);
@@ -260,4 +258,59 @@ public class EventController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
+    private void setPlayerMatchInformation(UserDto user, PageResult<EventDto> result, Long playerId) {
+        var player = playerRepository.findByUserId(user.getId());
+        if (player != null && UserType.PLAYER.equals(user.getUserType())) {
+            for (var event : result.getContent()) {
+                var status = teamPlayerService.getTeamPlayerStatus(event.getId(), player.getId());
+                event.setPlayerStatus(status);
+
+                // Set rating and match result to only the player
+                if (playerId != null) {
+                    final List<MatchDto> matches = matchService.findMatchesByEventGrouped(event.getId());
+
+                    int wins = 0;
+                    int losses = 0;
+                    double initialRating = 0;
+                    double ratingChanges = 0;
+                    List<MatchDto> playerMatches = new ArrayList<>();
+
+                    // Check if the player is in either team
+                    for (MatchDto match : matches) {
+                        boolean isInTeamA = match.getTeamA().getTeamPlayers().stream()
+                                .anyMatch(tp -> tp.getPlayer().getId().equals(player.getId()));
+                        boolean isInTeamB = !isInTeamA && match.getTeamB().getTeamPlayers().stream()
+                                .anyMatch(tp -> tp.getPlayer().getId().equals(player.getId()));
+
+                        if (match.getTeamAWin() != null) {
+
+                            // Set rating changes for current player
+                            if (isInTeamA || isInTeamB) {
+                                final var matchRatingHistory = ratingHistoryRepository.findByPlayerIdAndMatchId(player.getId(), match.getId());
+                                if (matchRatingHistory != null) {
+                                    initialRating += matchRatingHistory.getRateScore();
+                                    ratingChanges += matchRatingHistory.getChanges();
+                                }
+                            }
+
+                            playerMatches.add(match);
+                            // Count match wins and loses
+                            if ((isInTeamA && match.getTeamAWin()) || (isInTeamB && !match.getTeamAWin())) {
+                                wins++;
+                            } else if (isInTeamA || isInTeamB) {
+                                losses++;
+                            }
+                        }
+                    }
+                    event.setInitialRating(initialRating);
+                    event.setFinalRating(initialRating - ratingChanges);
+                    event.setWins(wins);
+                    event.setLoses(losses);
+                    event.setMatches(playerMatches);
+                }
+
+
+            }
+        }
+    }
 }

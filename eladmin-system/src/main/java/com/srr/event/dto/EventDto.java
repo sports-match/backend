@@ -103,6 +103,16 @@ public class EventDto extends EventTimeDto implements Serializable {
     @ApiModelProperty(value = "Tags")
     private Set<String> tags = new HashSet<>();
 
+    private Integer wins;
+
+    private Integer loses;
+
+    private double initialRating;
+
+    private double finalRating;
+
+    private List<MatchDto> matches;
+
     private boolean isJoined;
 
     // Indicates if the current user can sign up for this event (for unauthenticated users/future events)

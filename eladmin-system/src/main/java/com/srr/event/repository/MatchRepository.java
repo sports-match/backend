@@ -59,6 +59,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
 
     /**
      * Find all matches for a specific match group
+     *
      * @param matchGroupId The match group ID
      * @return List of matches
      */
@@ -79,6 +80,7 @@ public interface MatchRepository extends JpaRepository<Match, Long>, JpaSpecific
      * @return List of matches for the event.
      */
     List<Match> findByMatchGroupEventId(Long eventId);
+
 
     @Query("SELECT m FROM Match m WHERE m.matchGroup.event.id = :eventId AND (m.teamA.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId) OR m.teamB.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId))")
     List<Match> findByEventIdAndPlayerId(Long eventId, Long playerId);

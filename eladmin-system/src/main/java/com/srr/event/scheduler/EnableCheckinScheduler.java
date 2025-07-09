@@ -33,14 +33,14 @@ public class EnableCheckinScheduler {
         }
 
         // 2. Transition from CHECK_IN to IN_PROGRESS when event starts
-        var eventsToStart = eventRepository.findAllByStatusAndEventTimeLessThan(
-                EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now())
-        );
-        if (!eventsToStart.isEmpty()) {
-            eventsToStart.forEach(event -> {
-                event.setStatus(EventStatus.IN_PROGRESS);
-                eventRepository.save(event);
-            });
-        }
+//        var eventsToStart = eventRepository.findAllByStatusAndEventTimeLessThan(
+//                EventStatus.CHECK_IN, Timestamp.valueOf(LocalDateTime.now())
+//        );
+//        if (!eventsToStart.isEmpty()) {
+//            eventsToStart.forEach(event -> {
+//                event.setStatus(EventStatus.IN_PROGRESS);
+//                eventRepository.save(event);
+//            });
+//        }
     }
 }

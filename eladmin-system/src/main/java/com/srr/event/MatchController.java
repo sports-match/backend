@@ -39,7 +39,7 @@ public class MatchController {
 
     @ApiOperation("Get all matches for the current user")
     @GetMapping("/my-matches")
-    @PreAuthorize("hasAuthority('Organizer')")
+    @PreAuthorize("hasAnyAuthority('Organizer', 'Player')")
     public ResponseEntity<List<MatchDto>> getMyMatches() {
         List<Match> matches = matchService.findMatchesForCurrentUser();
         List<MatchDto> result = matches.stream()

@@ -17,6 +17,8 @@ import java.util.Set;
 public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long>, JpaSpecificationExecutor<TeamPlayer> {
     boolean existsByTeamIdAndPlayerId(Long teamId, Long playerId);
 
+    List<TeamPlayer> findByTeamId(Long teamId);
+
     TeamPlayer findByTeamIdAndPlayerId(Long teamId, Long playerId);
 
     @Query("SELECT tp FROM TeamPlayer tp JOIN tp.team t WHERE t.event.id = :eventId AND tp.player.id = :playerId")
