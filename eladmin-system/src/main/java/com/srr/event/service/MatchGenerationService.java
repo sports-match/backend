@@ -49,8 +49,13 @@ public class MatchGenerationService {
             throw new BadRequestException("All groups must be finalized before generating matches.");
         }
 
+        // Check if matches already generated
+        final List<Match> existingMatches = matchRepository.findAllByMatchGroupId(eventId);
+        if (!existingMatches.isEmpty()) {
+            throw new BadRequestException("Matches already exist for this event.");
+        }
+
         int totalMatchesGenerated = 0;
-        System.out.println("Total match groups: " + matchGroups.size());
         // Generate matches for each group
         for (MatchGroup group : matchGroups) {
             totalMatchesGenerated += generateMatchesForGroup(group);
