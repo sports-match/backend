@@ -16,14 +16,12 @@ import com.srr.organizer.service.EventOrganizerService;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
-import com.srr.player.dto.TeamDto;
 import com.srr.player.mapper.TeamMapper;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.TeamPlayerService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import me.zhengjie.domain.EmailConfig;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
@@ -607,7 +605,7 @@ public class EventService {
         final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
         // Check if all groups have been finalized
         final boolean allGroupFinalized = matchGroup
-                .stream().allMatch(MatchGroup::getIsFinalized);
+                .stream().allMatch(MatchGroup::getFinalized);
 
         if (allGroupFinalized) {
             throw new BadRequestException("All groups have already been finalized");
@@ -615,7 +613,9 @@ public class EventService {
 
         final var updatedGroup = matchGroup
                 .stream()
-                .peek(group -> group.setIsFinalized(true)).toList();
+                .peek(group -> group.setFinalized(true)).toList();
+
+
         matchGroupRepository.saveAll(updatedGroup);
 
         //Update event status to IN_PROGRESS

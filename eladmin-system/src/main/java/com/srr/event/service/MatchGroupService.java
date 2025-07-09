@@ -150,7 +150,7 @@ public class MatchGroupService {
         MatchGroup matchGroup = matchGroupRepository.findById(matchGroupId)
                 .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", matchGroupId.toString()));
 
-        final boolean isFinalized = matchGroup.getIsFinalized();
+        final boolean isFinalized = matchGroup.getFinalized();
         if (isFinalized) {
             throw new BadRequestException("Cannot update court numbers for a finalized group.");
         }
@@ -173,7 +173,7 @@ public class MatchGroupService {
         if (currentGroup == null) {
             throw new BadRequestException("Team is not currently assigned to any group.");
         }
-        
+
         if (currentGroup.getId().equals(targetGroupId)) {
             throw new BadRequestException("Team is already in the target group.");
         }

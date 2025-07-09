@@ -31,7 +31,7 @@ public class MatchGroupDto implements Serializable {
     private String courtNumbers;
 
     @ApiModelProperty(value = "Group status")
-    private boolean isFinalized;
+    private Boolean finalized;
 
     private List<TeamDto> teams;
 

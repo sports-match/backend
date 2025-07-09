@@ -44,7 +44,7 @@ public class MatchGenerationService {
             return;
         }
 
-        final boolean allGroupsFinalized = matchGroups.stream().allMatch(MatchGroup::getIsFinalized);
+        final boolean allGroupsFinalized = matchGroups.stream().allMatch(MatchGroup::getFinalized);
         if (!allGroupsFinalized) {
             throw new BadRequestException("All groups must be finalized before generating matches.");
         }
