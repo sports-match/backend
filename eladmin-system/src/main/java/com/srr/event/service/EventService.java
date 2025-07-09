@@ -3,10 +3,7 @@ package com.srr.event.service;
 import com.srr.club.domain.Club;
 import com.srr.club.service.ClubService;
 import com.srr.enumeration.*;
-import com.srr.event.domain.Event;
-import com.srr.event.domain.MatchGroup;
-import com.srr.event.domain.Tag;
-import com.srr.event.domain.WaitList;
+import com.srr.event.domain.*;
 import com.srr.event.dto.*;
 import com.srr.event.mapper.MatchGroupMapper;
 import com.srr.event.mapper.MatchMapper;
@@ -19,11 +16,14 @@ import com.srr.organizer.service.EventOrganizerService;
 import com.srr.player.domain.Player;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
+import com.srr.player.dto.TeamDto;
+import com.srr.player.mapper.TeamMapper;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.TeamPlayerRepository;
 import com.srr.player.repository.TeamRepository;
 import com.srr.player.service.TeamPlayerService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.zhengjie.domain.EmailConfig;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
  * @description 服务实现
  * @date 2025-05-18
  **/
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventService {
@@ -77,6 +78,7 @@ public class EventService {
     private final ClubService clubService;
     private final EventCoHostOrganizerService eventCoHostOrganizerService;
     private final EventOrganizerService eventOrganizerService;
+    private final TeamMapper teamMapper;
 
 
     /**
@@ -646,7 +648,61 @@ public class EventService {
     @Transactional
     public List<MatchGroupDto> findGroup(Long eventId) {
         final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
-        return matchGroupMapper.toDto(matchGroup);
+        final var listMatchGroupDto = matchGroupMapper.toDto(matchGroup);
+        return getMatchGroupWithMatrix(eventId, listMatchGroupDto);
+    }
+
+    private List<MatchGroupDto> getMatchGroupWithMatrix(final Long eventId,
+                                                        final List<MatchGroupDto> listMatchGroupDto) {
+        return listMatchGroupDto.stream()
+                .map(matchGroupDto -> {
+                    List<MatrixDto> matrixDtoList = teamRepository
+                            .findByEventIdAndMatchGroupId(eventId, matchGroupDto.getId())
+                            .stream()
+                            .map(team -> MatrixDto.builder()
+                                    .team(teamMapper.toDto(team))
+                                    .matches(getAllMatchMatrixByTeam(team))
+                                    .build())
+                            .toList();
+                    return matchGroupDto.setMatrix(matrixDtoList);
+                })
+                .toList();
+    }
+
+    private List<MatrixMatchDto> getAllMatchMatrixByTeam(Team team) {
+        final Long teamId = team.getId();
+        final Long matchGroupId = team.getMatchGroup().getId();
+
+        return matchRepository.findAllByMatchGroupIdOrderByMatchOrderAsc(matchGroupId)
+                .stream()
+                .filter(match -> isTeamInMatch(teamId, match))
+                .map(match -> createMatrixMatchDto(teamId, match))
+                .toList();
+    }
+
+    /**
+     * Checks if the given team is a participant in the specified match
+     */
+    private boolean isTeamInMatch(Long teamId, Match match) {
+        return teamId.equals(match.getTeamA().getId()) ||
+                teamId.equals(match.getTeamB().getId());
+    }
+
+    /**
+     * Creates a MatrixMatchDto object for the given team and match.
+     */
+    private MatrixMatchDto createMatrixMatchDto(Long teamId, Match match) {
+        boolean isTeamA = teamId.equals(match.getTeamA().getId());
+
+        Team opponent = isTeamA ? match.getTeamB() : match.getTeamA();
+        Integer myScore = isTeamA ? match.getScoreA() : match.getScoreB();
+        Integer otherScore = isTeamA ? match.getScoreB() : match.getScoreA();
+
+        return MatrixMatchDto.builder()
+                .otherTeam(teamMapper.toDto(opponent))
+                .myScore(myScore)
+                .otherScore(otherScore)
+                .build();
     }
 
     /**

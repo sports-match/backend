@@ -46,4 +46,15 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
     @Modifying
     @Query("DELETE FROM Team t WHERE t.event.id = :eventId")
     void deleteByEventId(@Param("eventId") Long eventId);
+
+
+    /**
+     * Find all teams for a specific event and match group
+     *
+     * @param eventId ID of the event
+     * @param matchGroupId ID of the match group
+     * @return List of teams
+     */
+    @Query("SELECT t FROM Team t WHERE t.event.id = :eventId AND t.matchGroup.id = :matchGroupId ORDER BY t.id ASC")
+    List<Team> findByEventIdAndMatchGroupId(Long eventId, Long matchGroupId);
 }
