@@ -50,6 +50,67 @@ public class PlayerService {
     private final MatchMapper matchMapper;
     private final RatingHistoryMapper ratingHistoryMapper;
 
+    public List<PlayerEventRatingDTO> getPlayerEventRating(Long eventId) {
+        final List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
+        final List<PlayerEventRatingDTO> playerEventRatings = new ArrayList<>();
+
+        for (TeamPlayer teamPlayer : teamPlayers) {
+            final PlayerEventRatingDTO playerEventRating = new PlayerEventRatingDTO();
+            double previousRating = 0;
+            double ratingChanges = 0;
+            int wins = 0;
+            int losses = 0;
+
+            // Get all matches for the event
+            List<Match> eventMatches = teamPlayer.getTeam().getEvent().getMatchGroups().stream()
+                    .flatMap(matchGroup -> matchGroup.getMatches().stream())
+                    .toList();
+
+            // Process each match
+            for (Match match : eventMatches) {
+                boolean isInTeamA = match.getTeamA().getTeamPlayers().stream()
+                        .anyMatch(tp -> tp.getPlayer().getId().equals(teamPlayer.getPlayer().getId()));
+                boolean isInTeamB = !isInTeamA && match.getTeamB().getTeamPlayers().stream()
+                        .anyMatch(tp -> tp.getPlayer().getId().equals(teamPlayer.getPlayer().getId()));
+
+                if (isInTeamA || isInTeamB) {
+                    // Get rating history for this match and player
+                    final var matchRatingHistory = ratingHistoryRepository.findByPlayerIdAndMatchId(
+                            teamPlayer.getPlayer().getId(),
+                            match.getId()
+                    );
+
+                    if (matchRatingHistory != null) {
+                        if (previousRating == 0) {
+                            // First match sets the initial rating
+                            previousRating = matchRatingHistory.getRateScore() - matchRatingHistory.getChanges();
+                        }
+                        ratingChanges += matchRatingHistory.getChanges();
+                    }
+
+                    // Count wins and losses
+                    if ((isInTeamA && match.isTeamAWin()) || (isInTeamB && !match.isTeamAWin())) {
+                        wins++;
+                    } else {
+                        losses++;
+                    }
+                }
+            }
+
+            // Set the player's rating information
+            playerEventRating.setName(teamPlayer.getPlayer().getName());
+            playerEventRating.setWins(wins);
+            playerEventRating.setLosses(losses);
+            playerEventRating.setPreviousRating(previousRating);
+            playerEventRating.setRatingChanges(ratingChanges);
+            playerEventRating.setNewRating(previousRating + ratingChanges);
+
+            playerEventRatings.add(playerEventRating);
+        }
+
+        return playerEventRatings;
+    }
+
     public PageResult<PlayerDto> queryAll(PlayerQueryCriteria criteria, Pageable pageable) {
 
         Page<Player> page = playerRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);

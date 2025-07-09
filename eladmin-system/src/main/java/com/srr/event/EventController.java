@@ -303,7 +303,7 @@ public class EventController {
                         }
                     }
                     event.setInitialRating(initialRating);
-                    event.setFinalRating(initialRating - ratingChanges);
+                    event.setFinalRating(initialRating + ratingChanges);
                     event.setWins(wins);
                     event.setLoses(losses);
                     event.setMatches(playerMatches);

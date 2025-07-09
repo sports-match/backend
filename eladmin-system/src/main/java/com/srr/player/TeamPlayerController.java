@@ -31,14 +31,6 @@ public class TeamPlayerController {
     public ResponseEntity<TeamPlayerDto> getTeamPlayer(@PathVariable Long id) {
         return new ResponseEntity<>(teamPlayerService.findById(id), HttpStatus.OK);
     }
-
-    @PutMapping("/{id}/check-in")
-    @Log("Check in player")
-    @ApiOperation("Check in player for an event")
-    @PreAuthorize("hasAuthority('Organizer')")
-    public ResponseEntity<TeamPlayerDto> checkIn(@PathVariable Long id) {
-        return new ResponseEntity<>(teamPlayerService.checkIn(id), HttpStatus.OK);
-    }
     
     @PostMapping("/reassign")
     @Log("Reassign player to another team")
