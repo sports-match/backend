@@ -81,7 +81,7 @@ public class TeamPlayerService {
      * @return TeamPlayerDto
      */
     @Transactional
-    public TeamPlayerDto checkIn(Long id) {
+    public TeamPlayerDto checkIn(Long id, boolean isOrganizer) {
         TeamPlayer teamPlayer = teamPlayerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(TeamPlayer.class, "id", id.toString()));
 
@@ -91,7 +91,7 @@ public class TeamPlayerService {
             throw new BadRequestException("Check-in is only allowed when the event status is CHECK_IN.");
         }
 
-        if (teamPlayer.isCheckedIn()) {
+        if (teamPlayer.isCheckedIn() && !isOrganizer) {
             throw new BadRequestException("Player is already checked in");
         }
 
@@ -122,7 +122,8 @@ public class TeamPlayerService {
 
         // Check-in validation for organizer in double format events
         final UserDto currentUser = getCurrentUser();
-        if (currentUser != null && UserType.ORGANIZER.equals(currentUser.getUserType())) {
+        final boolean isOrganizer = currentUser != null && UserType.ORGANIZER.equals(currentUser.getUserType());
+        if (isOrganizer) {
             Team team = teamPlayer.getTeam();
             Event event = team.getEvent();
 
@@ -132,13 +133,13 @@ public class TeamPlayerService {
 
             List<TeamPlayer> teamPlayers = teamPlayerRepository.findByTeamId(team.getId());
             for (TeamPlayer tp : teamPlayers) {
-                checkIn(tp.getId());
+                checkIn(tp.getId(), true);
             }
 
             return teamPlayerMapper.toDto(teamPlayer);
         }
 
-        return checkIn(teamPlayer.getId());
+        return checkIn(teamPlayer.getId(), false);
     }
 
     @Transactional(readOnly = true)
