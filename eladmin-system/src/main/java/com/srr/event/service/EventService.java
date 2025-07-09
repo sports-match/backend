@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
  * @description 服务实现
  * @date 2025-05-18
  **/
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventService {
