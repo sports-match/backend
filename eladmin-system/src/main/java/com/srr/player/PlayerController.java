@@ -90,4 +90,10 @@ public class PlayerController {
     public ResponseEntity<PlayerEventSummaryDto> getLastEventWithResultsAndRatingChange(@PathVariable Long id) {
         return ResponseEntity.ok(playerService.getLastEventWithResultsAndRatingChange(id));
     }
+
+    @GetMapping("/event/{id}/player-rating")
+    public ResponseEntity<List<PlayerEventRatingDTO>> getEventPlayersRating(@PathVariable() Long id) {
+        final List<PlayerEventRatingDTO> playerEventRatings = playerService.getPlayerEventRating(id);
+        return new ResponseEntity<>(playerEventRatings, HttpStatus.OK);
+    }
 }
