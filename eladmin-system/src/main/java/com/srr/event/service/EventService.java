@@ -39,6 +39,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Subquery;
@@ -186,6 +187,15 @@ public class EventService {
                 );
             }
 
+            // Filter by playerId
+            if (criteria.getPlayerId() != null) {
+                Join<Event, MatchGroup> matchGroupJoin = root.join("matchGroups");
+                Join<MatchGroup, Team> teamJoin = matchGroupJoin.join("teams");
+                Join<Team, TeamPlayer> teamPlayerJoin = teamJoin.join("teamPlayers");
+                Join<TeamPlayer, Player> playerJoin = teamPlayerJoin.join("player");
+
+                predicate = builder.and(predicate, builder.equal(playerJoin.get("id"), criteria.getPlayerId()));
+            }
             return predicate;
         };
     }
@@ -606,6 +616,12 @@ public class EventService {
                 .stream()
                 .peek(group -> group.setIsFinalized(true)).toList();
         matchGroupRepository.saveAll(updatedGroup);
+
+        //Update event status to IN_PROGRESS
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", eventId.toString()));
+        event.setStatus(EventStatus.IN_PROGRESS);
+        eventRepository.save(event);
     }
 
     /**

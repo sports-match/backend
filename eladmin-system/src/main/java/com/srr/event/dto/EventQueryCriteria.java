@@ -57,6 +57,10 @@ public class EventQueryCriteria {
     @ApiModelProperty(value = "sportId")
     private Long sportId;
 
+    private Long playerId;
+
+    private boolean includeMatchResult;
+
     /**
      * 精确
      */

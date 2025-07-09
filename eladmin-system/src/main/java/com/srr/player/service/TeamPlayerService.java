@@ -130,9 +130,9 @@ public class TeamPlayerService {
                 throw new BadRequestException("Cannot check in. A double format team must have exactly 2 players.");
             }
 
-            final List<TeamPlayer> teamPlayers = teamPlayerRepository.findByEventId(eventId);
-            for (TeamPlayer teamPlayer1 : teamPlayers) {
-                checkIn(teamPlayer1.getId());
+            List<TeamPlayer> teamPlayers = teamPlayerRepository.findByTeamId(team.getId());
+            for (TeamPlayer tp : teamPlayers) {
+                checkIn(tp.getId());
             }
 
             return teamPlayerMapper.toDto(teamPlayer);
