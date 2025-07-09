@@ -315,6 +315,10 @@ public class EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(id)));
 
+        if (event.getStatus() != EventStatus.PUBLISHED) {
+            throw new BadRequestException("You cannot start check-in for an event with status not: " + EventStatus.PUBLISHED);
+        }
+
         event.setStatus(status);
         if (status == EventStatus.CHECK_IN) {
             event.setCheckInStart(Timestamp.from(Instant.now()));

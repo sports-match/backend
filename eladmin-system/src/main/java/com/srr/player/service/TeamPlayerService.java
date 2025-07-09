@@ -15,11 +15,13 @@
  */
 package com.srr.player.service;
 
+import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
 import com.srr.enumeration.TeamStatus;
 import com.srr.event.domain.Event;
 import com.srr.event.dto.EventActionDTO;
+import com.srr.event.repository.EventRepository;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.PlayerDto;
@@ -60,6 +62,7 @@ public class TeamPlayerService {
     private final TeamPlayerMapper teamPlayerMapper;
     private final PlayerSportRatingRepository playerSportRatingRepository;
     private final PlayerMapper playerMapper;
+    private final EventRepository eventRepository;
 
     /**
      * Get TeamPlayer by id
@@ -84,12 +87,6 @@ public class TeamPlayerService {
     public TeamPlayerDto checkIn(Long id, boolean isOrganizerOrAdmin) {
         TeamPlayer teamPlayer = teamPlayerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(TeamPlayer.class, "id", id.toString()));
-
-        // Only allow check-in if event status is CHECK_IN
-        Team team = teamPlayer.getTeam();
-        if (team == null || team.getEvent() == null || team.getEvent().getStatus() != com.srr.enumeration.EventStatus.CHECK_IN) {
-            throw new BadRequestException("Check-in is only allowed when the event status is CHECK_IN.");
-        }
 
         if (teamPlayer.isCheckedIn() && !isOrganizerOrAdmin) {
             throw new BadRequestException("Player is already checked in");
@@ -119,6 +116,12 @@ public class TeamPlayerService {
         if (teamPlayer == null) {
             throw new BadRequestException("You haven't registered for this event.");
         }
+        final Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", eventId.toString()));
+
+        if (event.getStatus() != EventStatus.CHECK_IN) {
+            throw new BadRequestException("Check-in is only allowed when the event status is CHECK_IN.");
+        }
 
         // Check-in validation for organizer in double format events
         final UserDto currentUser = getCurrentUser();
@@ -126,13 +129,15 @@ public class TeamPlayerService {
                 || UserType.ADMIN.equals(currentUser.getUserType()));
         if (isOrganizerOrAdmin) {
             Team team = teamPlayer.getTeam();
-            Event event = team.getEvent();
-
             if (Format.DOUBLE.equals(event.getFormat()) && team.getTeamSize() != 2) {
                 throw new BadRequestException("Cannot check in. A double format team must have exactly 2 players.");
             }
 
             List<TeamPlayer> teamPlayers = teamPlayerRepository.findByTeamId(team.getId());
+            if (teamPlayers.stream().allMatch(TeamPlayer::isCheckedIn)) {
+                throw new BadRequestException("Team is already checked in.");
+            }
+            
             for (TeamPlayer tp : teamPlayers) {
                 checkIn(tp.getId(), true);
             }
