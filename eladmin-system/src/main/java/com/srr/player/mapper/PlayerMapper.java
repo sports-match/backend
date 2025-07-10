@@ -7,10 +7,10 @@ import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 
 /**
-* @author Chanheng
-* @date 2025-05-18
-**/
+ * @author Chanheng
+ * @date 2025-05-18
+ **/
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE, uses = {PlayerSportRatingMapper.class})
 public interface PlayerMapper extends BaseMapper<PlayerDto, Player> {
-
+    PlayerDto toDto(Player player, Long teamPlayerId);
 }

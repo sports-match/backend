@@ -140,6 +140,7 @@ public class TeamPlayerService {
             if (teamPlayers.stream().allMatch(TeamPlayer::isCheckedIn)) {
                 throw new BadRequestException("Team is already checked in.");
             }
+            
             for (TeamPlayer tp : teamPlayers) {
                 checkIn(tp.getId(), true);
             }
@@ -291,6 +292,7 @@ public class TeamPlayerService {
         if (joiningTeamPlayer == null) {
             return false; // player not in any team yet
         }
+
         Team oldTeam = joiningTeamPlayer.getTeam();
         if (oldTeam.getId().equals(targetTeamId)) {
             throw new BadRequestException("Player is already in the target team");

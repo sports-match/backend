@@ -26,7 +26,9 @@ import me.zhengjie.domain.EmailConfig;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
+import me.zhengjie.modules.security.service.enums.UserType;
 import me.zhengjie.modules.system.repository.UserRepository;
+import me.zhengjie.modules.system.service.dto.UserDto;
 import me.zhengjie.service.EmailService;
 import me.zhengjie.utils.*;
 import org.springframework.data.domain.Page;
@@ -45,6 +47,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static me.zhengjie.modules.security.service.SecurityContextUtils.getCurrentUser;
 
 /**
  * @author Chanheng
@@ -346,8 +350,9 @@ public class EventService {
             throw new BadRequestException("Please complete your self-assessment before joining an event.");
         }
 
-        // Block joining if event is private
-        if (Boolean.FALSE.equals(event.getIsPublic())) {
+        // Block joining if event is private from players access
+        final UserDto currentUser = getCurrentUser();
+        if (Boolean.FALSE.equals(event.getIsPublic()) && (currentUser == null || currentUser.getUserType() == UserType.PLAYER)) {
             throw new BadRequestException("This event is private. Joining is not allowed.");
         }
 
