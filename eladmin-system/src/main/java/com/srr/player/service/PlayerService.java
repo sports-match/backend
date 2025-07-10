@@ -26,8 +26,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -151,7 +149,7 @@ public class PlayerService {
     }
 
 
-    public PlayerDetailsDto  findPlayerDetailsById(Long id, PlayerDetailsRequest request) {
+    public PlayerDetailsDto findPlayerDetailsById(Long id, PlayerDetailsRequest request) {
         var playerDto = playerRepository.findById(id)
                 .map(playerMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", id));

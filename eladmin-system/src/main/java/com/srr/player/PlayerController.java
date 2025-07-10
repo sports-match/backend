@@ -48,7 +48,7 @@ public class PlayerController {
     @ApiOperation("Get player by ID")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
     public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable @Min(1) Long id,
-                                                              @RequestBody PlayerDetailsRequest request) {
+                                                              PlayerDetailsRequest request) {
         return new ResponseEntity<>(playerService.findPlayerDetailsById(id, request), HttpStatus.OK);
     }
 
