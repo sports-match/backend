@@ -150,6 +150,10 @@ public class TeamPlayerService {
         return checkIn(teamPlayer.getId(), false);
     }
 
+    /**
+     * Throws a BadRequestException with a message explaining how much time until the check in opens
+     * for the given event.
+     */
     private void handleErrorEventNotCheckedIn(Event event) {
 
         Timestamp checkInStart = event.getCheckInStart();
