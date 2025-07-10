@@ -80,9 +80,18 @@ public class MatchGroupService {
             //String notCheckedInNames = notCheckedInTeams.stream().map(Team::getName).collect(Collectors.joining(", "));
             throw new BadRequestException("The teams are registered but not checked in. All teams must be checked in before group formation.");
         }
+
         if (checkedInTeams.isEmpty()) {
             throw new BadRequestException("No checked-in teams found for event with ID: " + eventId);
         }
+
+        // Check if all checked-in teams have a partner
+        checkedInTeams.forEach(team -> {
+            if (team.getTeamSize() > 1 && team.getTeamPlayers().size() != team.getTeamSize()) {
+                throw new BadRequestException("Please assign partner before group formation.");
+            }
+        });
+
         // Sort checked-in teams by their average score (descending, nulls last)
         List<Team> sortedTeams = checkedInTeams.stream()
                 .sorted(Comparator.comparing(Team::getAverageScore, Comparator.nullsLast(Comparator.reverseOrder())))
