@@ -50,7 +50,7 @@ public class MatchGenerationService {
         }
 
         // Check if matches already generated
-        final List<Match> existingMatches = matchRepository.findAllByMatchGroupId(eventId);
+        final List<Match> existingMatches = matchRepository.findByMatchGroupEventId(eventId);
         if (!existingMatches.isEmpty()) {
             throw new BadRequestException("Matches already exist for this event.");
         }

@@ -1,6 +1,7 @@
 package com.srr.player.dto;
 
 import com.srr.enumeration.TeamPlayerStatus;
+import com.srr.utils.NumberConverter;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -37,4 +38,13 @@ public class TeamPlayerDto implements Serializable {
 
     @ApiModelProperty(value = "Combine average score for the team")
     private Double combinedScore;
+
+    // Custom getters
+    public Long getScore() {
+        return NumberConverter.doubleToLong(score);
+    }
+
+    public Long getCombinedScore() {
+        return NumberConverter.doubleToLong(combinedScore);
+    }
 }

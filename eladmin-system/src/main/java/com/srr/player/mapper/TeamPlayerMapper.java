@@ -74,10 +74,13 @@ public interface TeamPlayerMapper extends BaseMapper<TeamPlayerDto, TeamPlayer> 
             return 0.0;
         }
 
-        return player.getPlayerSportRating().stream()
+        Long rating = player.getPlayerSportRating()
+                .stream()
                 .filter(rate -> rate != null && rate.getRateScore() != null && Objects.equals(rate.getSportId(), sportId))
                 .findFirst()
                 .map(PlayerSportRatingDto::getRateScore)
-                .orElse(0.0);
+                .orElse(0L);
+        // Convert to double
+        return rating.doubleValue();
     }
 }

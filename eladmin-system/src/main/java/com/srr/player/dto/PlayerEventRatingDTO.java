@@ -1,5 +1,6 @@
 package com.srr.player.dto;
 
+import com.srr.utils.NumberConverter;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -12,4 +13,17 @@ public class PlayerEventRatingDTO {
     private Double previousRating;
     private Double newRating;
     private Double ratingChanges;
+
+    // Custom getters
+    public Long getPreviousRating() {
+        return NumberConverter.doubleToLong(previousRating);
+    }
+
+    public Long getNewRating() {
+        return NumberConverter.doubleToLong(newRating);
+    }
+
+    public Long getRatingChanges() {
+        return NumberConverter.doubleToLong(ratingChanges);
+    }
 }

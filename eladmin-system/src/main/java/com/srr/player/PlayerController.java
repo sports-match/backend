@@ -47,8 +47,9 @@ public class PlayerController {
     @GetMapping("/{id}/dashboard")
     @ApiOperation("Get player by ID")
     @PreAuthorize("hasAnyAuthority('Player', 'Organizer')")
-    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable @Min(1) Long id) {
-        return new ResponseEntity<>(playerService.findPlayerDetailsById(id), HttpStatus.OK);
+    public ResponseEntity<PlayerDetailsDto> getByIdForHomPage(@PathVariable @Min(1) Long id,
+                                                              PlayerDetailsRequest request) {
+        return new ResponseEntity<>(playerService.findPlayerDetailsById(id, request), HttpStatus.OK);
     }
 
     @PutMapping
