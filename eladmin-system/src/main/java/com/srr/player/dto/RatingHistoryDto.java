@@ -15,11 +15,13 @@
 */
 package com.srr.player.dto;
 
+import com.srr.utils.NumberConverter;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 /**
 * @website https://eladmin.vip
@@ -46,8 +48,17 @@ public class RatingHistoryDto implements Serializable {
     private Double changes;
 
     @ApiModelProperty(value = "Creation time")
-    private Timestamp createTime;
+    private LocalDateTime createTime;
 
     @ApiModelProperty(value = "Match ID")
     private Long matchId;
+
+    // Custom getters
+    public Long getRateScore() {
+        return NumberConverter.doubleToLong(rateScore);
+    }
+
+    public Long getChanges() {
+        return NumberConverter.doubleToLong(changes);
+    }
 }

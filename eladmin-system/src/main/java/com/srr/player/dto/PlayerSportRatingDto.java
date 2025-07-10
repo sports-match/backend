@@ -1,6 +1,7 @@
 package com.srr.player.dto;
 
 import com.srr.enumeration.Format;
+import com.srr.utils.NumberConverter;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -20,4 +21,9 @@ public class PlayerSportRatingDto implements Serializable {
     private Boolean provisional;
     private Timestamp createTime;
     private Timestamp updateTime;
+
+    // Custom getters
+    public Long getRateScore() {
+        return NumberConverter.doubleToLong(rateScore);
+    }
 }

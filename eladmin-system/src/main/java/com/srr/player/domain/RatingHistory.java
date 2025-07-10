@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -41,7 +43,7 @@ public class RatingHistory implements Serializable {
     @Column(name = "create_time")
     @CreationTimestamp
     @ApiModelProperty(value = "Creation time", hidden = true)
-    private Timestamp createTime;
+    private LocalDateTime createTime;
 
     @ManyToOne
     @JoinColumn(name = "match_id")
