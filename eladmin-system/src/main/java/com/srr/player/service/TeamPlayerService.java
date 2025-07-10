@@ -137,7 +137,7 @@ public class TeamPlayerService {
             if (teamPlayers.stream().allMatch(TeamPlayer::isCheckedIn)) {
                 throw new BadRequestException("Team is already checked in.");
             }
-            
+
             for (TeamPlayer tp : teamPlayers) {
                 checkIn(tp.getId(), true);
             }
@@ -178,10 +178,10 @@ public class TeamPlayerService {
                 .map(teamPlayers -> {
                     teamPlayers.sort((p1, p2) -> p2.getId().compareTo(p1.getId()));
                     final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
-                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer());
+                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer(), mainTeamPlayer.getTeam().getEvent().getSportId());
                     final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
                     PlayerDto partnerDto = (partnerTeamPlayer != null)
-                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer())
+                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer(), partnerTeamPlayer.getId())
                             : null;
 
                     TeamStatus status = teamPlayers.get(0).getTeam().getStatus();
@@ -264,6 +264,7 @@ public class TeamPlayerService {
         if (joiningTeamPlayer == null) {
             return false; // player not in any team yet
         }
+
         Team oldTeam = joiningTeamPlayer.getTeam();
         if (oldTeam.getId().equals(targetTeamId)) {
             throw new BadRequestException("Player is already in the target team");

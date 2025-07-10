@@ -40,7 +40,7 @@ public class PlayerDto implements Serializable {
 
     @ApiModelProperty(value = "更新时间")
     private Timestamp updateTime;
-    
+
     @ApiModelProperty(value = "评分")
     private Double rateScore;
 
@@ -52,4 +52,6 @@ public class PlayerDto implements Serializable {
 
     @ApiModelProperty(value = "各运动评分")
     private List<PlayerSportRatingDto> playerSportRating;
+    
+    private Long teamPlayerId;
 }
