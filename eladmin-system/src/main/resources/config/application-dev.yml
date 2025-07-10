@@ -4,7 +4,7 @@ spring:
     druid:
       db-type: com.alibaba.druid.pool.DruidDataSource
       driverClassName: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/eladmin?serverTimezone=UTC&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+      url: jdbc:mysql://localhost:3306/eladmin?characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
       username: root
       password: root
       # 初始连接数，建议设置为与最小空闲连接数相同

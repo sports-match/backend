@@ -26,6 +26,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -148,7 +151,7 @@ public class PlayerService {
     }
 
 
-    public PlayerDetailsDto findPlayerDetailsById(Long id) {
+    public PlayerDetailsDto  findPlayerDetailsById(Long id, PlayerDetailsRequest request) {
         var playerDto = playerRepository.findById(id)
                 .map(playerMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", id));
@@ -162,21 +165,29 @@ public class PlayerService {
                 .map(eventMapper::toDto)
                 .toList();
 
-        final var badminton = sportService.getBadminton();
-
         double singleRating = 0;
         double singleRatingChanges = 0;
         double doubleRating = 0;
         double doubleRatingChanges = 0;
 
-        var singleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
+        // Check if there is a date filter
+        var isNotFilterDate = request.getStartDate() == null || request.getEndDate() == null;
+        // Get the rating history for the last 6 months
+        var sixMonthsAgo = LocalDateTime.now().minusMonths(6);
+
+        var singleRatingsHistory = isNotFilterDate
+                ? ratingHistoryRepository.findByPlayerIdAndFormatWithDate(id, Format.SINGLE, sixMonthsAgo) // get the last 6 months
+                : ratingHistoryRepository.findByPlayerIdAndFormatWithDateRange(id, Format.SINGLE, request.getStartDate(), request.getEndDate());
 
         if (singleRatingsHistory != null && !singleRatingsHistory.isEmpty()) {
             singleRating = singleRatingsHistory.get(0).getRateScore();
             singleRatingChanges = singleRatingsHistory.get(0).getChanges();
         }
 
-        var doubleRatingsHistory = ratingHistoryRepository.findByPlayerIdOrderByCreateTimeDesc(id);
+        var doubleRatingsHistory = isNotFilterDate
+                ? ratingHistoryRepository.findByPlayerIdAndFormatWithDate(id, Format.DOUBLE, sixMonthsAgo) // get the last 6 months
+                : ratingHistoryRepository.findByPlayerIdAndFormatWithDateRange(id, Format.DOUBLE, request.getStartDate(), request.getEndDate());
+
         if (doubleRatingsHistory != null && !doubleRatingsHistory.isEmpty()) {
             doubleRating = doubleRatingsHistory.get(0).getRateScore();
             doubleRatingChanges = doubleRatingsHistory.get(0).getChanges();
