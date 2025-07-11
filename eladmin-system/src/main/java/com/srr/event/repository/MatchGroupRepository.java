@@ -18,6 +18,7 @@ package com.srr.event.repository;
 import com.srr.event.domain.MatchGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -32,6 +33,28 @@ public interface MatchGroupRepository extends JpaRepository<MatchGroup, Long>, J
      * @return List of match groups
      */
     List<MatchGroup> findAllByEventId(Long eventId);
+
+    /**
+     * Find all match groups for a specific event
+     * @param eventId The event ID
+     * @param userId The current user ID
+     * @return List of match groups filter by user ID type player
+     */
+    @Query("""
+        SELECT mg FROM MatchGroup mg
+        WHERE mg.event.id = :eventId
+          AND mg.id IN (
+            SELECT t.matchGroup.id FROM Team t
+            WHERE t.id IN (
+                SELECT tp.team.id FROM TeamPlayer tp
+                WHERE tp.player.id IN (
+                    SELECT p.id FROM Player p
+                    WHERE p.user.id = :userId
+                )
+            )
+        )
+    """)
+    List<MatchGroup> findAllByEventIdAndUserId(Long eventId, Long userId);
 
     /**
      * Delete all match groups for a specific event.

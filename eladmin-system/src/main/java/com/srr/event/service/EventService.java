@@ -26,6 +26,7 @@ import me.zhengjie.domain.EmailConfig;
 import me.zhengjie.domain.vo.EmailVo;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
+import me.zhengjie.modules.security.service.enums.UserType;
 import me.zhengjie.modules.system.repository.UserRepository;
 import me.zhengjie.service.EmailService;
 import me.zhengjie.utils.*;
@@ -666,7 +667,14 @@ public class EventService {
 
     @Transactional
     public List<MatchGroupDto> findGroup(Long eventId) {
-        final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        final var currentUser = SecurityUtils.getCurrentUser();
+        final var user = userRepository.findByUsername(currentUser.getUsername());
+        List<MatchGroup> matchGroup;
+        if (user.getUserType() == UserType.PLAYER) {
+            matchGroup = matchGroupRepository.findAllByEventIdAndUserId(eventId, user.getId());
+        } else {
+            matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        }
         final var listMatchGroupDto = matchGroupMapper.toDto(matchGroup);
         return getMatchGroupWithMatrix(eventId, listMatchGroupDto);
     }
