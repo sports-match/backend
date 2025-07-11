@@ -675,7 +675,14 @@ public class EventService {
 
     @Transactional
     public List<MatchGroupDto> findGroup(Long eventId) {
-        final var matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        final var currentUser = SecurityUtils.getCurrentUser();
+        final var user = userRepository.findByUsername(currentUser.getUsername());
+        List<MatchGroup> matchGroup;
+        if (user.getUserType() == UserType.PLAYER) {
+            matchGroup = matchGroupRepository.findAllByEventIdAndUserId(eventId, user.getId());
+        } else {
+            matchGroup = matchGroupRepository.findAllByEventId(eventId);
+        }
         final var listMatchGroupDto = matchGroupMapper.toDto(matchGroup);
         return getMatchGroupWithMatrix(eventId, listMatchGroupDto);
     }
