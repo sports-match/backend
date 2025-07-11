@@ -35,7 +35,7 @@ public interface MatchGroupRepository extends JpaRepository<MatchGroup, Long>, J
     List<MatchGroup> findAllByEventId(Long eventId);
 
     /**
-     * Find all match groups for a specific event
+     * Find all match groups for a specific event and user
      * @param eventId The event ID
      * @param userId The current user ID
      * @return List of match groups filter by user ID type player
