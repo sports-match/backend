@@ -41,4 +41,6 @@ public class MatchGroupDto implements Serializable {
     private List<MatchDto> matches;
 
     private List<MatrixDto> matrix;
+
+    private Integer playerCount;
 }

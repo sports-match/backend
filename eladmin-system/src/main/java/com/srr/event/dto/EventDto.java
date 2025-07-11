@@ -4,6 +4,7 @@ import com.srr.club.dto.ClubDto;
 import com.srr.enumeration.EventStatus;
 import com.srr.enumeration.Format;
 import com.srr.enumeration.TeamPlayerStatus;
+import com.srr.utils.NumberConverter;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -123,4 +124,12 @@ public class EventDto extends EventTimeDto implements Serializable {
 
 
     private ClubDto club;
+
+    public Long getInitialRating() {
+        return NumberConverter.doubleToLong(initialRating);
+    }
+
+    public Long getFinalRating() {
+        return NumberConverter.doubleToLong(finalRating);
+    }
 }

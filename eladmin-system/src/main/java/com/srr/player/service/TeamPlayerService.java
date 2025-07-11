@@ -41,6 +41,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -120,7 +123,7 @@ public class TeamPlayerService {
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", eventId.toString()));
 
         if (event.getStatus() != EventStatus.CHECK_IN) {
-            throw new BadRequestException("Check-in is only allowed when the event status is CHECK_IN.");
+            handleErrorEventNotCheckedIn(event);
         }
 
         // Check-in validation for organizer in double format events
@@ -137,7 +140,7 @@ public class TeamPlayerService {
             if (teamPlayers.stream().allMatch(TeamPlayer::isCheckedIn)) {
                 throw new BadRequestException("Team is already checked in.");
             }
-
+            
             for (TeamPlayer tp : teamPlayers) {
                 checkIn(tp.getId(), true);
             }
@@ -146,6 +149,31 @@ public class TeamPlayerService {
         }
 
         return checkIn(teamPlayer.getId(), false);
+    }
+
+    /**
+     * Throws a BadRequestException with a message explaining how much time until the check in opens
+     * for the given event.
+     */
+    private void handleErrorEventNotCheckedIn(Event event) {
+
+        Timestamp checkInStart = event.getCheckInStart();
+        Timestamp today = Timestamp.valueOf(LocalDateTime.now().toLocalDate().atStartOfDay());
+
+        // Convert Timestamps to Instant
+        Instant startInstant = checkInStart.toInstant();
+        Instant todayInstant = today.toInstant();
+
+        // Calculate duration between the two instants
+        Duration duration = Duration.between(startInstant, todayInstant);
+
+        // Extract different units
+        var days = Math.abs(duration.toDays());
+        var hours = Math.abs(duration.toHours() % 24);
+        var minutes = Math.abs(duration.toMinutes() % 60);
+
+        throw new BadRequestException(String.format("Event is not allowed to be checked in yet, Check in opens in %d days and %d hours and %d minutes",
+                days, hours, minutes));
     }
 
     @Transactional(readOnly = true)
@@ -178,10 +206,10 @@ public class TeamPlayerService {
                 .map(teamPlayers -> {
                     teamPlayers.sort((p1, p2) -> p2.getId().compareTo(p1.getId()));
                     final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
-                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer(), mainTeamPlayer.getId());
+                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer());
                     final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
                     PlayerDto partnerDto = (partnerTeamPlayer != null)
-                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer(), partnerTeamPlayer.getId())
+                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer())
                             : null;
 
                     TeamStatus status = teamPlayers.get(0).getTeam().getStatus();

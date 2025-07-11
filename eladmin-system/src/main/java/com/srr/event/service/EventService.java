@@ -155,9 +155,13 @@ public class EventService {
             if (criteria.getEventTimeFilter() != null) {
                 Timestamp now = new Timestamp(System.currentTimeMillis());
                 if (criteria.getEventTimeFilter() == EventTimeFilter.UPCOMING) {
-                    predicate = builder.and(predicate, builder.greaterThanOrEqualTo(root.get("eventTime"), now));
+                    predicate = builder.and(
+                            predicate,
+                            builder.greaterThanOrEqualTo(root.get("eventTime"), now),
+                            builder.notEqual(root.get("status"), EventStatus.COMPLETED)
+                    );
                 } else if (criteria.getEventTimeFilter() == EventTimeFilter.PAST) {
-                    predicate = builder.and(predicate, builder.lessThan(root.get("eventTime"), now));
+                    predicate = builder.and(predicate, builder.equal(root.get("status"), EventStatus.COMPLETED));
                 }
             }
 
@@ -688,9 +692,25 @@ public class EventService {
                                     .matches(getAllMatchMatrixByTeam(team))
                                     .build())
                             .toList();
+                    matchGroupDto.setPlayerCount(getPlayerCountByGroup(matchGroupDto));
                     return matchGroupDto.setMatrix(matrixDtoList);
                 })
                 .toList();
+    }
+
+    /**
+     * Calculates the total number of players in a match group by summing the players in each team in the group.
+     */
+    private int getPlayerCountByGroup(MatchGroupDto matchGroup) {
+        if (matchGroup == null || matchGroup.getTeams() == null) {
+            return 0;
+        }
+        return matchGroup.getTeams()
+                .stream()
+                .mapToInt(team -> team.getTeamPlayers() == null
+                        ? 0
+                        : team.getTeamPlayers().size())
+                .sum();
     }
 
     private List<MatrixMatchDto> getAllMatchMatrixByTeam(Team team) {
