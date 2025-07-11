@@ -132,7 +132,8 @@ public class TeamPlayerService {
                 || UserType.ADMIN.equals(currentUser.getUserType()));
         if (isOrganizerOrAdmin) {
             Team team = teamPlayer.getTeam();
-            if (Format.DOUBLE.equals(event.getFormat()) && team.getTeamSize() != 2) {
+            final var teamPlayersSize = team.getTeamPlayers() == null ? 0 : team.getTeamPlayers().size();
+            if (Format.DOUBLE.equals(event.getFormat()) && team.getTeamSize() == 2 && teamPlayersSize != 2) {
                 throw new BadRequestException("Cannot check in. A double format team must have exactly 2 players.");
             }
 
@@ -140,7 +141,7 @@ public class TeamPlayerService {
             if (teamPlayers.stream().allMatch(TeamPlayer::isCheckedIn)) {
                 throw new BadRequestException("Team is already checked in.");
             }
-            
+
             for (TeamPlayer tp : teamPlayers) {
                 checkIn(tp.getId(), true);
             }
