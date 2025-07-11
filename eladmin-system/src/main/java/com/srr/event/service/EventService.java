@@ -155,9 +155,13 @@ public class EventService {
             if (criteria.getEventTimeFilter() != null) {
                 Timestamp now = new Timestamp(System.currentTimeMillis());
                 if (criteria.getEventTimeFilter() == EventTimeFilter.UPCOMING) {
-                    predicate = builder.and(predicate, builder.greaterThanOrEqualTo(root.get("eventTime"), now));
+                    predicate = builder.and(
+                            predicate,
+                            builder.greaterThanOrEqualTo(root.get("eventTime"), now),
+                            builder.notEqual(root.get("status"), EventStatus.COMPLETED)
+                    );
                 } else if (criteria.getEventTimeFilter() == EventTimeFilter.PAST) {
-                    predicate = builder.and(predicate, builder.lessThan(root.get("eventTime"), now));
+                    predicate = builder.and(predicate, builder.equal(root.get("status"), EventStatus.COMPLETED));
                 }
             }
 
