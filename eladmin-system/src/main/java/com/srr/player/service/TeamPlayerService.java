@@ -207,10 +207,10 @@ public class TeamPlayerService {
                 .map(teamPlayers -> {
                     teamPlayers.sort((p1, p2) -> p2.getId().compareTo(p1.getId()));
                     final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
-                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer());
+                    PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer(), mainTeamPlayer.getId());
                     final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
                     PlayerDto partnerDto = (partnerTeamPlayer != null)
-                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer())
+                            ? playerMapper.toDto(partnerTeamPlayer.getPlayer(), partnerTeamPlayer.getId())
                             : null;
 
                     TeamStatus status = teamPlayers.get(0).getTeam().getStatus();
