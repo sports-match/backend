@@ -8,14 +8,15 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 /**
-* @author Chanheng
-* @date 2025-05-26
-**/
+ * @author Chanheng
+ * @date 2025-05-26
+ **/
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface RatingHistoryMapper extends BaseMapper<RatingHistoryDto, RatingHistory> {
 
     /**
      * Entity to DTO mapping with explicit field mappings
+     *
      * @param entity RatingHistory entity
      * @return RatingHistoryDto
      */
@@ -23,5 +24,6 @@ public interface RatingHistoryMapper extends BaseMapper<RatingHistoryDto, Rating
     @Mapping(source = "player.id", target = "playerId")
     @Mapping(source = "player.name", target = "playerName")
     @Mapping(source = "match.id", target = "matchId")
+    @Mapping(source = "createTime", target = "createTime")
     RatingHistoryDto toDto(RatingHistory entity);
 }

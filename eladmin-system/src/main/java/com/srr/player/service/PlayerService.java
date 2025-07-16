@@ -163,9 +163,9 @@ public class PlayerService {
                 .map(eventMapper::toDto)
                 .toList();
 
-        double singleRating = 0;
+        double singleRating = playerDto.getPlayerSportRating().get(0).getRateScore();
         double singleRatingChanges = 0;
-        double doubleRating = 0;
+        double doubleRating = playerDto.getPlayerSportRating().get(0).getRateScore();
         double doubleRatingChanges = 0;
 
         // Check if there is a date filter
