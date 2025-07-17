@@ -14,8 +14,8 @@ import java.util.List;
  * @date 2025-05-25
  **/
 public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificationExecutor<Team> {
-    @Query("SELECT COUNT(t) FROM Team t WHERE t.matchGroup.id = :groupId")
-    int countTeamByGroupId(@Param("groupId") Long groupId);
+    @Query("SELECT COUNT(t) FROM Team t WHERE t.matchGroup.id = :groupId AND t.event.id = :eventId")
+    int countTeamByGroupIdAndEventId(@Param("groupId") Long groupId, @Param("eventId") Long eventId);
 
     /**
      * Find all teams for a specific event
@@ -51,7 +51,7 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
     /**
      * Find all teams for a specific event and match group
      *
-     * @param eventId ID of the event
+     * @param eventId      ID of the event
      * @param matchGroupId ID of the match group
      * @return List of teams
      */
