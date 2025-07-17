@@ -652,13 +652,7 @@ public class EventService {
                 .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
         MatchGroup targetGroup = matchGroupRepository.findById(targetGroupId)
                 .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", targetGroupId.toString()));
-
-
-        int currentTargetSize = teamRepository.countTeamByGroupId(request.getTargetGroupId());
-        if (currentTargetSize >= targetGroup.getGroupTeamSize()) {
-            throw new BadRequestException("Target group is full");
-        }
-
+        
         MatchGroup currentGroup = team.getMatchGroup();
         if (currentGroup.getId().equals(request.getTargetGroupId())) {
             throw new BadRequestException("Relocation to the same group is not allowed");
