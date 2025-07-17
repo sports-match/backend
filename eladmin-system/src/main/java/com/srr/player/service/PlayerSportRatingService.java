@@ -19,13 +19,13 @@ public class PlayerSportRatingService {
 
     public List<PlayerSportRatingDto> getRatingsForPlayer(Long playerId) {
         return playerSportRatingRepository.findByPlayerId(playerId)
-            .stream().map(this::toDto).collect(Collectors.toList());
+                .stream().map(this::toDto).collect(Collectors.toList());
     }
 
     public PlayerSportRatingDto getRatingForPlayerSportFormat(Long playerId, String sport, Format format) {
         final var sportId = sportService.getByName(sport).getId();
         return playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(playerId, sportId, format)
-            .map(this::toDto).orElse(null);
+                .map(this::toDto).orElse(null);
     }
 
     private PlayerSportRatingDto toDto(PlayerSportRating entity) {

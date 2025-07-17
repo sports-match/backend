@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface PlayerSportRatingRepository extends JpaRepository<PlayerSportRating, Long>, JpaSpecificationExecutor<PlayerSportRating> {
 
     Optional<PlayerSportRating> findByPlayerIdAndSportIdAndFormat(Long playerId, Long sportId, Format format);
-
+    
     List<PlayerSportRating> findByPlayerId(Long playerId);
 
     List<PlayerSportRating> findTop2ByPlayerIdAndFormatAndSportIdOrderByCreateTimeDesc(Long playerId, Format format, Long sportId);

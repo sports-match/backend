@@ -17,7 +17,6 @@ import com.srr.player.repository.PlayerRepository;
 import com.srr.player.repository.PlayerSportRatingRepository;
 import com.srr.player.repository.RatingHistoryRepository;
 import com.srr.player.repository.TeamPlayerRepository;
-import com.srr.sport.service.SportService;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.exception.EntityNotFoundException;
 import me.zhengjie.utils.*;
@@ -45,7 +44,6 @@ public class PlayerService {
     private final TeamPlayerRepository teamPlayerRepository;
     private final RatingHistoryRepository ratingHistoryRepository;
     private final MatchRepository matchRepository;
-    private final SportService sportService;
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final MatchMapper matchMapper;
@@ -163,9 +161,11 @@ public class PlayerService {
                 .map(eventMapper::toDto)
                 .toList();
 
-        double singleRating = playerDto.getPlayerSportRating().get(0).getRateScore();
+        double singleRating = playerDto.getPlayerSportRating().stream().filter(rate -> rate != null
+                && rate.getRateScore() != null && rate.getFormat() == Format.SINGLE).findFirst().map(PlayerSportRatingDto::getRateScore).orElse(0L);
         double singleRatingChanges = 0;
-        double doubleRating = playerDto.getPlayerSportRating().get(0).getRateScore();
+        double doubleRating = playerDto.getPlayerSportRating().stream().filter(rate -> rate != null && rate.getRateScore() != null
+                && rate.getFormat() == Format.DOUBLE).findFirst().map(PlayerSportRatingDto::getRateScore).orElse(0L);
         double doubleRatingChanges = 0;
 
         // Check if there is a date filter

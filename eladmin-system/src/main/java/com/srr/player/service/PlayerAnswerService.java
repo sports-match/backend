@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -102,7 +103,7 @@ public class PlayerAnswerService {
         List<PlayerAnswer> relevantAnswers = savedAnswers.stream()
                 .filter(ans -> questionIds.contains(ans.getQuestionId()))
                 .collect(Collectors.toList());
-        updatePlayerSportRating(playerId, sportId, format, relevantAnswers);
+        updatePlayerSportRating(playerId, sportId, relevantAnswers);
         return savedAnswers.stream().map(this::toDto).collect(Collectors.toList());
     }
 
@@ -117,7 +118,7 @@ public class PlayerAnswerService {
         // Recalculate player sport rating after creating an answer
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(resources.getPlayerId());
         // Use default sport/format for single answer creation
-        updatePlayerSportRating(resources.getPlayerId(), resources.getSportId(), Format.DOUBLE, answers);
+        updatePlayerSportRating(resources.getPlayerId(), resources.getSportId(), answers);
         return ExecutionResult.of(saved.getId());
     }
 
@@ -136,7 +137,7 @@ public class PlayerAnswerService {
         PlayerAnswer saved = playerAnswerRepository.save(playerAnswer);
         // Recalculate player sport rating after update
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(resources.getPlayerId());
-        updatePlayerSportRating(resources.getPlayerId(), resources.getSportId(), Format.DOUBLE, answers);
+        updatePlayerSportRating(resources.getPlayerId(), resources.getSportId(), answers);
         return ExecutionResult.of(saved.getId());
     }
 
@@ -150,7 +151,7 @@ public class PlayerAnswerService {
         // Recalculate player sport rating after delete
         List<PlayerAnswer> answers = playerAnswerRepository.findByPlayerId(playerId);
         var badminton = sportService.getBadminton();
-        updatePlayerSportRating(playerId, badminton.getId(), Format.DOUBLE, answers);
+        updatePlayerSportRating(playerId, badminton.getId(), answers);
         return ExecutionResult.ofDeleted(id);
     }
 
@@ -191,21 +192,33 @@ public class PlayerAnswerService {
         return dto;
     }
 
-    private void updatePlayerSportRating(Long playerId, Long sportId, Format format, List<PlayerAnswer> answers) {
+    private void updatePlayerSportRating(Long playerId, Long sportId, List<PlayerAnswer> answers) {
         if (answers.isEmpty()) {
             return;
         }
-        double srrd = ratingService.calculateInitialRating(answers);
-        final Player player = playerRepository.findById(playerId)
+
+        double score = ratingService.calculateInitialRating(answers);
+        Player player = playerRepository.findById(playerId)
                 .orElseThrow(() -> new EntityNotFoundException(Player.class, "id", playerId.toString()));
-        PlayerSportRating rating = playerSportRatingRepository.findByPlayerIdAndSportIdAndFormat(playerId, sportId, format)
-                .orElse(new PlayerSportRating());
+
+        EnumSet.of(Format.SINGLE, Format.DOUBLE).forEach(format ->
+                saveOrUpdateRating(player, sportId, format, score)
+        );
+    }
+
+    private void saveOrUpdateRating(Player player, Long sportId, Format format, double score) {
+        PlayerSportRating rating = playerSportRatingRepository
+                .findByPlayerIdAndSportIdAndFormat(player.getId(), sportId, format)
+                .orElseGet(PlayerSportRating::new);
+
         rating.setPlayer(player);
         rating.setSportId(sportId);
-        rating.setFormat(format);
-        rating.setRateScore(srrd);
+        rating.setRateScore(score);
         rating.setRateBand(null);
         rating.setProvisional(true);
+        rating.setFormat(format);
+
         playerSportRatingRepository.save(rating);
     }
+
 }
