@@ -22,6 +22,7 @@ import com.srr.enumeration.TeamStatus;
 import com.srr.event.domain.Event;
 import com.srr.event.dto.EventActionDTO;
 import com.srr.event.repository.EventRepository;
+import com.srr.player.domain.Player;
 import com.srr.player.domain.Team;
 import com.srr.player.domain.TeamPlayer;
 import com.srr.player.dto.PlayerDto;
@@ -205,7 +206,6 @@ public class TeamPlayerService {
                 .map(Team::getTeamPlayers)
                 .filter(players -> players != null && !players.isEmpty() && players.get(0) != null)
                 .map(teamPlayers -> {
-                    teamPlayers.sort((p1, p2) -> p2.getId().compareTo(p1.getId()));
                     final TeamPlayer mainTeamPlayer = teamPlayers.get(0);
                     PlayerDto mainPlayerDto = playerMapper.toDto(mainTeamPlayer.getPlayer(), mainTeamPlayer.getId());
                     final TeamPlayer partnerTeamPlayer = teamPlayers.size() > 1 ? teamPlayers.get(1) : null;
@@ -285,7 +285,7 @@ public class TeamPlayerService {
     /**
      * Merge teams if needed and return true if player is already in target team after merge.
      */
-    private boolean ensurePlayerInTargetTeam(Long eventId, Long joiningPlayerId, Long targetTeamId) {
+    public boolean ensurePlayerInTargetTeam(Long eventId, Long joiningPlayerId, Long targetTeamId) {
         // Find the joining player's existing TeamPlayer for this event
         TeamPlayer joiningTeamPlayer = teamPlayerRepository.findByEventId(eventId).stream()
                 .filter(tp -> tp.getPlayer().getId().equals(joiningPlayerId))
@@ -302,9 +302,7 @@ public class TeamPlayerService {
         // Prevent merge if target team is full
         Team targetTeam = teamRepository.findById(targetTeamId)
                 .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
-        if (targetTeam.getTeamPlayers().size() >= targetTeam.getTeamSize()) {
-            throw new BadRequestException("Target team is already full.");
-        }
+
         if (targetTeam.getStatus() == TeamStatus.WITHDRAWN) {
             throw new BadRequestException("Cannot join a withdrawn team.");
         }
@@ -314,6 +312,15 @@ public class TeamPlayerService {
             throw new BadRequestException("Withdrawn player cannot join a team.");
         }
 
+        if (targetTeam.getTeamSize() == targetTeam.getTeamPlayers().size() && oldTeam.getTeamPlayers().size() == oldTeam.getTeamSize()) {
+            throw new BadRequestException("Cannot join new team. Both teams are full.");
+        }
+        
+        if (targetTeam.getTeamPlayers().size() > 1) {
+            assignPreviousPartnerToNewTeam(joiningTeamPlayer.getTeam().getEvent(), targetTeam);
+        }
+
+
         // Move the player to the target team
         joiningTeamPlayer.setTeam(targetTeam);
         teamPlayerRepository.save(joiningTeamPlayer);
@@ -321,6 +328,7 @@ public class TeamPlayerService {
         // Reload target team to ensure up-to-date teamPlayers
         targetTeam = teamRepository.findById(targetTeamId)
                 .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", String.valueOf(targetTeamId)));
+
 
         // Update team timestamp
         targetTeam.setUpdateTime(new Timestamp(System.currentTimeMillis()));
@@ -348,6 +356,32 @@ public class TeamPlayerService {
             teamRepository.deleteById(oldTeam.getId());
         }
         return true;
+    }
+
+    public void assignPreviousPartnerToNewTeam(final Event event, final Team targetTeam) {
+        TeamPlayer partnerTeamPlayer = targetTeam.getTeamPlayers().get(1);
+        Player partner = partnerTeamPlayer.getPlayer();
+
+        Team team = new Team();
+        team.setEvent(event);
+        if (event.getFormat() == Format.SINGLE) {
+            team.setName("Player " + partner.getId());
+            team.setTeamSize(1);
+        } else if (event.getFormat() == Format.DOUBLE) {
+            team.setName("New Team");
+            team.setTeamSize(2);
+        } else {
+            team.setName("New Team");
+            team.setTeamSize(4);
+        }
+        team.setStatus(TeamStatus.REGISTERED);
+        team.setAverageScore(Objects.requireNonNull(partner.getPlayerSportRating().stream().filter(rating -> rating.getFormat() == event.getFormat())
+                .findFirst().orElse(null)).getRateScore());
+        team.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+
+        Team savedTeam = teamRepository.save(team);
+        partnerTeamPlayer.setTeam(savedTeam);
+        teamPlayerRepository.save(partnerTeamPlayer);
     }
 
     /**
