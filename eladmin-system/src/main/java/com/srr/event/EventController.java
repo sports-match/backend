@@ -267,7 +267,10 @@ public class EventController {
 
                 // Set rating and match result to only the player
                 if (playerId != null) {
-                    final List<MatchDto> matches = matchService.findMatchesByEventGrouped(event.getId());
+                    final List<MatchDto> matches = matchService.findMatchesByEventGrouped(event.getId())
+                            .stream()
+                            .filter(match -> isPlayerInMatch(match, playerId))
+                            .toList();
                     int wins = 0;
                     int losses = 0;
                     double initialRating = 0;
@@ -315,5 +318,14 @@ public class EventController {
 
             }
         }
+    }
+
+    private boolean isPlayerInMatch(MatchDto match, Long playerId) {
+        return match.getTeamA().getTeamPlayers()
+                .stream()
+                .anyMatch(tp -> tp.getPlayer().getId().equals(playerId)) ||
+                match.getTeamB().getTeamPlayers()
+                        .stream()
+                        .anyMatch(tp -> tp.getPlayer().getId().equals(playerId));
     }
 }
