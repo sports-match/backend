@@ -268,12 +268,12 @@ public class EventController {
                 // Set rating and match result to only the player
                 if (playerId != null) {
                     final List<MatchDto> matches = matchService.findMatchesByEventGrouped(event.getId());
-
                     int wins = 0;
                     int losses = 0;
                     double initialRating = 0;
-                    double ratingChanges = 0;
+                    double finalRating = 0;
                     List<MatchDto> playerMatches = new ArrayList<>();
+                    var index = 0;
 
                     // Check if the player is in either team
                     for (MatchDto match : matches) {
@@ -287,10 +287,13 @@ public class EventController {
                             // Set rating changes for current player
                             if (isInTeamA || isInTeamB) {
                                 final var matchRatingHistory = ratingHistoryRepository.findByPlayerIdAndMatchId(player.getId(), match.getId());
-                                if (matchRatingHistory != null) {
-                                    initialRating += matchRatingHistory.getRateScore();
-                                    ratingChanges += matchRatingHistory.getChanges();
+                                if (index == 0 && matchRatingHistory != null) {
+                                    initialRating = matchRatingHistory.getRateScore() - matchRatingHistory.getChanges();
                                 }
+                                if (matchRatingHistory != null) {
+                                    finalRating = matchRatingHistory.getRateScore();
+                                }
+                                index++;
                             }
 
                             playerMatches.add(match);
@@ -303,7 +306,7 @@ public class EventController {
                         }
                     }
                     event.setInitialRating(initialRating);
-                    event.setFinalRating(initialRating + ratingChanges);
+                    event.setFinalRating(finalRating);
                     event.setWins(wins);
                     event.setLoses(losses);
                     event.setMatches(playerMatches);
