@@ -433,7 +433,7 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException(Event.class, "id", String.valueOf(eventId)));
 
-        if (event.getStatus() != EventStatus.PUBLISHED) {
+        if (event.getStatus() != EventStatus.PUBLISHED && event.getStatus() != EventStatus.CHECK_IN) {
             throw new BadRequestException("Withdrawal is not allowed at the current event status: " + event.getStatus());
         }
 
@@ -652,7 +652,7 @@ public class EventService {
                 .orElseThrow(() -> new EntityNotFoundException(Team.class, "id", teamId.toString()));
         MatchGroup targetGroup = matchGroupRepository.findById(targetGroupId)
                 .orElseThrow(() -> new EntityNotFoundException(MatchGroup.class, "id", targetGroupId.toString()));
-        
+
         MatchGroup currentGroup = team.getMatchGroup();
         if (currentGroup.getId().equals(request.getTargetGroupId())) {
             throw new BadRequestException("Relocation to the same group is not allowed");
